@@ -20,6 +20,21 @@
           document.head.appendChild(fb);
         };
       }
+      window.addEventListener('DOMContentLoaded', function() {
+        var test = document.createElement('div');
+        test.className = 'sos-overlay';
+        document.body.appendChild(test);
+        var isStyled = window.getComputedStyle(test).position === 'fixed';
+        document.body.removeChild(test);
+        if (!isStyled) {
+          ['/style.css', 'style.css', 'public/style.css'].forEach(function(path) {
+            var fb = document.createElement('link');
+            fb.rel = 'stylesheet';
+            fb.href = path;
+            document.head.appendChild(fb);
+          });
+        }
+      });
     })();
   </script>
   <!-- Leaflet for Nearby Hospitals Map -->
