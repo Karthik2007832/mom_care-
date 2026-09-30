@@ -8,7 +8,20 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="./style.css" id="momcareStylesheet" />
+  <script>
+    (function() {
+      var link = document.getElementById('momcareStylesheet');
+      if (link) {
+        link.onerror = function() {
+          var fb = document.createElement('link');
+          fb.rel = 'stylesheet';
+          fb.href = '/style.css';
+          document.head.appendChild(fb);
+        };
+      }
+    })();
+  </script>
   <!-- Leaflet for Nearby Hospitals Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1050,9 +1063,9 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════ SCRIPTS -->
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/ai_core.js"></script>
-  <script src="/app.js"></script>
+  <script src="/socket.io/socket.io.js" onerror="console.info('Socket.IO offline; running in standalone mode')"></script>
+  <script src="./ai_core.js" onerror="this.onerror=null;this.src='/ai_core.js'"></script>
+  <script src="./app.js" onerror="this.onerror=null;this.src='/app.js'"></script>
 
 </body>
 </html>
