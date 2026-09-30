@@ -3034,13 +3034,14 @@ async function dispatchChatMessage(userText, historyContainerId, inputElementId)
 // ── Client-Side Edge AI Maternal Assistant Fallback ────────────────────────
 function generateClientMaternalAiResponse(message, vitals, language) {
   const text = (message || '').toLowerCase();
-  const v = vitals || window.currentVitals || {};
+  const v = vitals || (typeof window !== 'undefined' ? window.currentVitals : null) || {};
   const isLive = !!(v && (v.hasValidData || v.bpm > 0));
-  const bpm = isLive && v.bpm ? Number(v.bpm).toFixed(0) : (document.getElementById('valBpm')?.textContent !== '0' ? document.getElementById('valBpm')?.textContent : null);
-  const spo2 = isLive && v.spo2 ? v.spo2 : (document.getElementById('docValSpo2')?.textContent !== '--' ? document.getElementById('docValSpo2')?.textContent : null);
-  const temp = isLive && v.temp ? Number(v.temp).toFixed(1) : (document.getElementById('valTemp')?.textContent !== '35' ? document.getElementById('valTemp')?.textContent : null);
-  const bp = isLive && v.bp && v.bp !== '-- / --' ? v.bp : (document.getElementById('docValBp')?.textContent !== '-- / --' ? document.getElementById('docValBp')?.textContent : null);
-  const kicks = isLive && v.kicks !== undefined ? v.kicks : (document.getElementById('valKicks')?.textContent || '0');
+  const doc = typeof document !== 'undefined' ? document : null;
+  const bpm = isLive && v.bpm ? Number(v.bpm).toFixed(0) : (doc?.getElementById('valBpm')?.textContent !== '0' ? doc?.getElementById('valBpm')?.textContent : null);
+  const spo2 = isLive && v.spo2 ? v.spo2 : (doc?.getElementById('docValSpo2')?.textContent !== '--' ? doc?.getElementById('docValSpo2')?.textContent : null);
+  const temp = isLive && v.temp ? Number(v.temp).toFixed(1) : (doc?.getElementById('valTemp')?.textContent !== '35' ? doc?.getElementById('valTemp')?.textContent : null);
+  const bp = isLive && v.bp && v.bp !== '-- / --' ? v.bp : (doc?.getElementById('docValBp')?.textContent !== '-- / --' ? doc?.getElementById('docValBp')?.textContent : null);
+  const kicks = isLive && v.kicks !== undefined ? v.kicks : (doc?.getElementById('valKicks')?.textContent || '0');
   const isFall = !!(v && v.fallAlert);
 
   const lang = (language || (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en')).toLowerCase();
