@@ -4,6 +4,7 @@
   "description": "Real-time maternal health monitoring dashboard for Mom Care IoT system",
   "main": "server.js",
   "scripts": {
+    "build": "echo Build complete",
     "start": "node server.js",
     "dev": "nodemon server.js",
     "wifi": "cross-env MODE=wifi node server.js",
