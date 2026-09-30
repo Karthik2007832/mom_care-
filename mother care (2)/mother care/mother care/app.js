@@ -555,13 +555,14 @@ function drawLineChart(ctx, canvas, data, opts) {
   const toY = v => PAD.top + h - ((v - min) / range) * h;
 
   // Grid lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  const isLightMode = document.body.classList.contains('light-theme');
+  ctx.strokeStyle = isLightMode ? 'rgba(15,23,42,0.07)' : 'rgba(255,255,255,0.05)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = PAD.top + (h / 4) * i;
     ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + w, y); ctx.stroke();
     const labelVal = max - ((max - min) / 4) * i;
-    ctx.fillStyle = 'rgba(139,163,199,0.6)';
+    ctx.fillStyle = isLightMode ? '#64748b' : 'rgba(139,163,199,0.6)';
     ctx.font = '9px Inter, sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(labelVal.toFixed(1), PAD.left - 4, y + 3);
@@ -1518,6 +1519,63 @@ window.exportSensorReportPdf = function() {
   }
 };
 
+// ── Theme Slider (Dark & Light Mode) ──────────────────────────────────────
+window.toggleTheme = function(isLight) {
+  try {
+    const theme = isLight ? 'light' : 'dark';
+    if (isLight) {
+      document.body.classList.add('light-theme');
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.body.classList.remove('light-theme');
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    localStorage.setItem('momcare_theme', theme);
+
+    // Sync all slider checkboxes across header and nav
+    const checkboxes = document.querySelectorAll('#themeSliderCheckbox, #themeSliderCheckboxNav, .theme-slider-checkbox');
+    checkboxes.forEach(cb => {
+      if (cb.checked !== !!isLight) cb.checked = !!isLight;
+    });
+
+    // Re-render compare chart if visible
+    const compareModal = document.getElementById('compareModal');
+    if (compareModal && !compareModal.classList.contains('hidden')) {
+      renderCompareChart();
+    }
+
+    if (typeof showReportToast === 'function') {
+      showReportToast(isLight ? '☀️ Light Mode Activated' : '🌙 Dark Mode Activated', true);
+    }
+  } catch (err) {
+    console.error('Theme toggle error:', err);
+  }
+};
+
+// Initialize theme state on script load
+(function initThemeState() {
+  const savedTheme = localStorage.getItem('momcare_theme');
+  const isLight = savedTheme === 'light';
+  if (isLight) {
+    document.body.classList.add('light-theme');
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.body.classList.remove('light-theme');
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  const syncCheckboxes = () => {
+    const checkboxes = document.querySelectorAll('#themeSliderCheckbox, #themeSliderCheckboxNav, .theme-slider-checkbox');
+    checkboxes.forEach(cb => {
+      cb.checked = isLight;
+    });
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', syncCheckboxes);
+  } else {
+    syncCheckboxes();
+  }
+})();
+
 // ── Compare Chart ──
 function renderCompareChart() {
   const canvas = document.getElementById('compareChart');
@@ -1540,7 +1598,8 @@ function renderCompareChart() {
   const pad = 30;
   const max = 100;
   
-  ctx.fillStyle = 'rgba(255,255,255,0.02)';
+  const isLightMode = document.body.classList.contains('light-theme');
+  ctx.fillStyle = isLightMode ? 'rgba(15,23,42,0.03)' : 'rgba(255,255,255,0.02)';
   ctx.fillRect(pad, pad, w - pad*2, h - pad*2);
   
   const barW = 24;
@@ -1550,17 +1609,17 @@ function renderCompareChart() {
   for(let i=0; i<4; i++) {
     const x = startX + i * gap;
     
-    // Last month (white/grey)
+    // Last month (white/grey or slate in light mode)
     const hLast = (dataLast[i]/max) * (h - pad*2);
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillStyle = isLightMode ? 'rgba(100,116,139,0.35)' : 'rgba(255,255,255,0.4)';
     ctx.fillRect(x, h - pad - hLast, barW, hLast);
     
-    // This month (pink)
+    // This month (pink/rose)
     const hThis = (dataThis[i]/max) * (h - pad*2);
     ctx.fillStyle = '#f43f6e';
     ctx.fillRect(x + barW + 5, h - pad - hThis, barW, hThis);
     
-    ctx.fillStyle = '#8ba3c7';
+    ctx.fillStyle = isLightMode ? '#475569' : '#8ba3c7';
     ctx.font = '12px Inter';
     ctx.textAlign = 'center';
     ctx.fillText(labels[i], x + barW, h - 10);

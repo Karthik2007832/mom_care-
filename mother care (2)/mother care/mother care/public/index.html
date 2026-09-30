@@ -9,6 +9,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./style.css">
+  <script>
+    (function () {
+      var savedTheme = localStorage.getItem('momcare_theme');
+      if (savedTheme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.classList.add('light-theme');
+        window.addEventListener('DOMContentLoaded', function () {
+          document.body.classList.add('light-theme');
+        });
+      }
+    })();
+  </script>
   <!-- Leaflet for Nearby Hospitals Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -111,6 +123,17 @@
       <div class="patient-badge">
         <span id="headerPatientName">Patient: -</span>
       </div>
+      <!-- Dark / Light Mode Slider -->
+      <div class="theme-toggle-box" title="Switch Theme (Dark / Light)">
+        <span class="theme-toggle-icon">🌙</span>
+        <label class="theme-switch" for="themeSliderCheckbox" title="Toggle Dark and Light Mode">
+          <input type="checkbox" id="themeSliderCheckbox" class="theme-slider-checkbox" onchange="toggleTheme(this.checked)" aria-label="Toggle Dark and Light Mode" />
+          <span class="theme-slider-track">
+            <span class="theme-slider-thumb"></span>
+          </span>
+        </label>
+        <span class="theme-toggle-icon">☀️</span>
+      </div>
     </div>
   </header>
 
@@ -139,6 +162,16 @@
       </div>
 
       <div class="nav-actions-group">
+        <div class="theme-toggle-box" title="Switch Theme (Dark / Light)">
+          <span class="theme-toggle-icon">🌙</span>
+          <label class="theme-switch" for="themeSliderCheckboxNav" title="Toggle Dark and Light Mode">
+            <input type="checkbox" id="themeSliderCheckboxNav" class="theme-slider-checkbox" onchange="toggleTheme(this.checked)" aria-label="Toggle Dark and Light Mode" />
+            <span class="theme-slider-track">
+              <span class="theme-slider-thumb"></span>
+            </span>
+          </label>
+          <span class="theme-toggle-icon">☀️</span>
+        </div>
         <div class="lang-selector-box">
           <span class="lang-icon">🌐</span>
           <select id="languageSelect" onchange="changeLanguage(this.value)" class="lang-select" aria-label="Select Language">
