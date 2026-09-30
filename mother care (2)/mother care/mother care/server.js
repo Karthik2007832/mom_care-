@@ -27,7 +27,17 @@ const io     = new Server(server, { cors: { origin: '*' } });
 
 app.use(express.json());
 app.use(express.text());
+app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) => {
+  const fs = require('fs');
+  const rootIndex = path.join(__dirname, 'index.html');
+  if (fs.existsSync(rootIndex)) {
+    return res.sendFile(rootIndex);
+  }
+  return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // ── Configuration ──────────────────────────────────────────────────────────
 const MODE        = (process.env.MODE || 'auto').toLowerCase();
