@@ -12,6 +12,9 @@
   <!-- Leaflet for Nearby Hospitals Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- jsPDF and AutoTable for Live Sensor PDF Report Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
@@ -93,6 +96,7 @@
       <!-- New Nav Buttons -->
       <button class="nav-btn" onclick="openModal('historyModal')">History</button>
       <button class="nav-btn" onclick="openModal('compareModal')">Compare</button>
+      <button id="btnExportReport" class="nav-btn" style="background: linear-gradient(135deg, #0284c7, #06b6d4); color: white; font-weight: 600;" onclick="exportSensorReportPdf()" title="Download PDF Clinical Report with Live Sensor Data">📄 Export Report</button>
       <button id="manualAlertBtn" class="nav-btn" style="background: var(--accent-rose); color: white;" onclick="handleManualAlert()">Manual Alert</button>
     </div>
     <div class="header-right">
@@ -505,7 +509,7 @@
             <span>📋 Clinical AI Diagnosis & Automated Medical Assessment</span>
             <span class="panel-badge ai-badge">CLINICAL DECISION SUPPORT</span>
           </div>
-          <button class="nav-btn" style="background: var(--accent-rose); color: white;" onclick="window.print()">🖨️ Export Clinical Report</button>
+          <button class="nav-btn" style="background: var(--accent-rose); color: white;" onclick="exportSensorReportPdf()">📄 Export Clinical Report (PDF)</button>
         </div>
         <div class="doc-assessment-body" id="doctorClinicalSummary">
           <p>Awaiting live biometric packets from ESP32 bio-sensor array before generating clinical evaluation...</p>
@@ -975,7 +979,10 @@
   <div id="historyModal" class="modal-overlay hidden">
     <div class="modal-content">
       <button class="modal-close" onclick="closeModal('historyModal')">&times;</button>
-      <h2 style="color: white; margin-bottom: 20px;">Session Health History</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-right: 30px;">
+        <h2 style="color: white; margin: 0;">Session Health History</h2>
+        <button class="nav-btn" style="background: linear-gradient(135deg, #0284c7, #06b6d4); color: white; padding: 6px 14px; font-size: 13px;" onclick="exportSensorReportPdf()">📄 Download Report (PDF)</button>
+      </div>
       <div class="history-table-wrapper" style="max-height: 400px; overflow-y: auto;">
         <table id="historyTable" class="history-table" style="width: 100%; text-align: left; color: white;">
           <thead style="background: rgba(255,255,255,0.1);">
