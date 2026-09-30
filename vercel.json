@@ -1,6 +1,15 @@
 {
   "version": 2,
-  "cleanUrls": true,
-  "installCommand": "echo Dependencies ready",
-  "buildCommand": "echo Build ready"
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
+  ]
 }
