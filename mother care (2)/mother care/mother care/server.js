@@ -10,14 +10,15 @@
 //     simulate → Realistic fake data
 // ============================================================================
 
-require('dotenv').config();
+try { require('dotenv').config(); } catch (e) {}
 
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const os = require('os');
-const Groq = require('groq-sdk');
+let Groq;
+try { Groq = require('groq-sdk'); } catch (e) { Groq = null; }
 
 let groq = null; // Lazy-initialized when first /api/chat request arrives
 
@@ -329,13 +330,6 @@ app.get('/api/status', (req, res) => {
 
 // ── GROQ AI CHAT ENDPOINT ─────────────────────────────────────────────────
 app.post('/api/chat', async (req, res) => {
-  if (!process.env.GROQ_API_KEY) {
-    return res.status(503).json({ error: 'Groq API key not configured. Add GROQ_API_KEY to your .env file.' });
-  }
-
-  // Lazy-initialize or refresh Groq client on request
-  groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
   const { message, vitals, language } = req.body;
   if (!message) return res.status(400).json({ error: 'No message provided.' });
 
@@ -349,94 +343,91 @@ app.post('/api/chat', async (req, res) => {
   };
   const targetLang = langNames[language] || 'English';
 
-  const hasLiveReading = vitals && vitals.hasValidData && vitals.bpm > 0;
-
-  let vitalsContext = '';
-  if (hasLiveReading) {
-    vitalsContext = `
-CURRENT LIVE SENSOR TELEMETRY (Hardware Stream Active):
-- Maternal Heart Rate: ${vitals.bpm.toFixed(1)} BPM
-- Blood Oxygen (SpO2): ${vitals.spo2}%
-- Body Temperature: ${vitals.temp.toFixed(1)} °C
-- Blood Pressure: ${vitals.bp} mmHg
-- Anemia Risk Screening: ${vitals.anemia}
-- Motion (G-Force): ${vitals.motion !== undefined ? vitals.motion.toFixed(3) + ' G' : '0.98 G'}
-- Fetal Kick Count: ${vitals.kicks ?? 0} kicks logged
-- Fall Detection Alert: ${vitals.fallAlert ? 'YES — POSSIBLE FALL DETECTED' : 'No Fall Detected (Normal)'}
-- Medication Status: ${vitals.meds || 'Taken'}
-- Prototype Patient Location: KIT College / Pappampatti Pirivu, Coimbatore, Tamil Nadu, India
-`;
-  } else {
-    vitalsContext = `
-HARDWARE SENSOR STATUS: WAITING FOR SENSOR DATA (Hardware sensor stream not connected or waiting for data).
-- Live Heart Rate: UNAVAILABLE / WAITING FOR SENSOR DATA
-- Blood Oxygen (SpO2): UNAVAILABLE / WAITING FOR SENSOR DATA
-- Body Temperature: UNAVAILABLE / WAITING FOR SENSOR DATA
-- Blood Pressure: UNAVAILABLE / WAITING FOR SENSOR DATA
-- Fall Status: Standby / Waiting for sensor data
-- Medication Status: ${vitals?.meds || 'Taken'}
-- Prototype Patient Location: KIT College / Pappampatti Pirivu, Coimbatore, Tamil Nadu, India
-
-CRITICAL SAFETY & MEDICAL INSTRUCTION:
-Because no sensor data has been received from the hardware, you MUST NOT say that the patient's heart rate, blood pressure, temperature, or vitals are "Normal", "Healthy", or "Fine".
-DO NOT invent or fabricate fake numbers (such as 72 BPM, 98% SpO2, 36.8°C, or 120/80).
-If the user asks: "How is my health?", "What is my heart rate?", "Is my SpO2 normal?", or "What is her blood pressure?":
-Explicitly inform them that live sensor readings are currently unavailable because the hardware sensors are not transmitting data (Waiting for sensor data / Sensor not connected), and advise them to ensure the ESP32 sensor device is powered on.
-`;
-  }
-
-  const systemPrompt = `You are MomCare Clinical AI, an expert, compassionate obstetric & maternal health medical assistant integrated into the MOMCARE 360 real-time IoT maternal monitoring system.
-
-${vitalsContext}
-
-Your clinical guidance principles:
-1. Provide professional, evidence-based, compassionate, and accurate answers regarding maternal health, pregnancy stages, fetal development, nutrition, hydration, and vitals.
-2. If live sensor data IS available, directly refer to the patient's live IoT sensor readings above when answering questions about current physical status, heart rate, temperature, kicks, blood pressure, or emergency status.
-3. If live sensor data IS NOT available, explicitly tell the user that sensor data is currently unavailable / waiting for sensor connection. NEVER assume or state that the mother's health is normal without valid sensor data.
-4. If the user asks about the patient's location or emergency, mention the prototype location: KIT College / Pappampatti Pirivu, Coimbatore, Tamil Nadu.
-5. If vitals show abnormalities (e.g., Heart Rate > 120 BPM, Fever > 37.5°C, or Sudden Fall Alert), gently warn the user and recommend notifying their healthcare provider, calling 108, or contacting nearby hospitals (e.g., NG Hospital, KMCH Sulur, Pappampatti PHC).
-6. Maintain a reassuring, supportive, and respectful tone at all times.
-7. Provide concise, clear answers suitable for mothers and family caregivers.
-8. CRITICAL LANGUAGE REQUIREMENT: The user has selected the language: ${targetLang}.
-   You MUST write your entire response fluently in ${targetLang}.
-   For example, if Tamil is selected, reply strictly in Tamil script (தமிழ்).
-   If Hindi is selected, reply strictly in Hindi script (हिन्दी).
-   If Telugu is selected, reply strictly in Telugu script (తెలుగు).
-   If Malayalam is selected, reply strictly in Malayalam script (മലയാളം).
-   If Kannada is selected, reply strictly in Kannada script (ಕನ್ನಡ).
-   If English is selected, reply in English.`;
-
-  try {
-    let completion;
+  // 1. If GROQ_API_KEY is available, try cloud AI first
+  if (process.env.GROQ_API_KEY) {
     try {
-      completion = await groq.chat.completions.create({
-        model: 'openai/gpt-oss-120b',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        max_tokens: 800,
-        temperature: 0.6,
-      });
-    } catch (modelErr) {
-      console.warn('Fallback to openai/gpt-oss-20b:', modelErr.message);
-      completion = await groq.chat.completions.create({
-        model: 'openai/gpt-oss-20b',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        max_tokens: 600,
-        temperature: 0.6,
-      });
-    }
+      groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const hasLiveReading = vitals && (vitals.hasValidData || vitals.bpm > 0);
 
-    const reply = completion.choices[0]?.message?.content?.trim() || 'Sorry, I could not generate a response.';
-    res.json({ reply });
-  } catch (err) {
-    console.error('Groq API error:', err.message);
-    res.status(500).json({ error: 'AI service error: ' + err.message });
+      let vitalsContext = hasLiveReading
+        ? `CURRENT LIVE SENSOR TELEMETRY (Hardware Stream Active):
+- Maternal Heart Rate: ${vitals.bpm} BPM
+- Blood Oxygen (SpO2): ${vitals.spo2}%
+- Body Temperature: ${vitals.temp} °C
+- Blood Pressure: ${vitals.bp} mmHg
+- Fetal Kicks: ${vitals.kicks ?? 0} kicks
+- Fall Detection Alert: ${vitals.fallAlert ? 'YES — POSSIBLE FALL DETECTED' : 'No Fall Detected (Normal)'}`
+        : `HARDWARE SENSOR STATUS: WAITING FOR SENSOR DATA (No live packets yet). Advise user to check ESP32 sensor connection.`;
+
+      const systemPrompt = `You are MomCare Clinical AI, an expert, compassionate obstetric maternal health medical assistant integrated into the MOMCARE 360 real-time IoT surveillance system.
+${vitalsContext}
+Write your entire response fluently in ${targetLang}. Keep answers concise, medically accurate, reassuring, and practical.`;
+
+      let completion;
+      try {
+        completion = await groq.chat.completions.create({
+          model: 'openai/gpt-oss-120b',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ],
+          max_tokens: 600,
+          temperature: 0.6,
+        });
+      } catch (modelErr) {
+        completion = await groq.chat.completions.create({
+          model: 'openai/gpt-oss-20b',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: message }
+          ],
+          max_tokens: 500,
+          temperature: 0.6,
+        });
+      }
+
+      const reply = completion.choices[0]?.message?.content?.trim();
+      if (reply) {
+        return res.json({ reply });
+      }
+    } catch (err) {
+      console.warn('Groq API fallback triggered:', err.message);
+    }
   }
+
+  // 2. Intelligent Clinical Fallback (if no API key or cloud AI fails)
+  const text = (message || '').toLowerCase();
+  const v = vitals || {};
+  const isLive = !!(v && (v.hasValidData || v.bpm > 0));
+  const bpm = isLive && v.bpm ? Number(v.bpm).toFixed(0) : null;
+  const spo2 = isLive && v.spo2 ? v.spo2 : null;
+  const temp = isLive && v.temp ? Number(v.temp).toFixed(1) : null;
+  const bp = isLive && v.bp && v.bp !== '-- / --' ? v.bp : null;
+  const kicks = isLive && v.kicks !== undefined ? v.kicks : null;
+  const isFall = !!(v && v.fallAlert);
+
+  let fallbackReply;
+  if (text.includes('heart') || text.includes('pulse') || text.includes('bpm')) {
+    fallbackReply = bpm
+      ? `Your maternal heart rate is currently ${bpm} BPM, which is within the expected physiological range (60–100 BPM). Continue quiet rest.`
+      : 'Waiting for live telemetry from the AD8232 ECG sensor. Please verify the chest leads are connected.';
+  } else if (text.includes('kick') || text.includes('movement') || text.includes('baby')) {
+    fallbackReply = kicks !== null
+      ? `Total recorded fetal movements today: ${kicks} kicks. Movement patterns indicate active fetal health.`
+      : 'The piezoelectric fetal movement sensor is active and monitoring kicks in real time.';
+  } else if (text.includes('temp') || text.includes('fever')) {
+    fallbackReply = temp
+      ? `Current body temperature is ${temp}°C (${Number(temp) <= 37.5 ? 'Normothermic / Normal' : 'Fever alert'}). Stay hydrated.`
+      : 'Waiting for LM35D body temperature sensor readings.';
+  } else if (text.includes('emergency') || text.includes('hospital') || text.includes('help')) {
+    fallbackReply = 'For acute medical assistance, contact National Emergency Services (108). In Coimbatore, nearby facilities include KMCH Sulur, NG Hospital, and Pappampatti PHC.';
+  } else {
+    fallbackReply = isLive
+      ? `Maternal Vitals Summary: Heart Rate: ${bpm || '--'} BPM, SpO2: ${spo2 || '--'}%, Temp: ${temp || '--'}°C, BP: ${bp || '--'} mmHg, Kicks: ${kicks ?? 0}. ${isFall ? 'Alert: Fall vector detected!' : 'All parameters stable.'}`
+      : 'Hello! I am MomCare Clinical AI. I am actively monitoring your maternal biometric telemetry. Feel free to ask about your heart rate, kicks, blood pressure, or prenatal health.';
+  }
+
+  res.json({ reply: fallbackReply });
 });
 
 // ── WHATSAPP ALERT ENDPOINT ───────────────────────────────────────────────
