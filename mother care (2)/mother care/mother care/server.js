@@ -13,32 +13,37 @@
 require('dotenv').config();
 
 const express = require('express');
-const http    = require('http');
+const http = require('http');
 const { Server } = require('socket.io');
-const path    = require('path');
-const os      = require('os');
-const Groq    = require('groq-sdk');
+const path = require('path');
+const os = require('os');
+const Groq = require('groq-sdk');
 
 let groq = null; // Lazy-initialized when first /api/chat request arrives
 
-const app    = express();
+const app = express();
 const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, { cors: { origin: '*' } });
 
 app.use(express.json());
 app.use(express.text());
-
 app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  const fs = require('fs');
+  const rootIndex = path.join(__dirname, 'index.html');
+  if (fs.existsSync(rootIndex)) {
+    return res.sendFile(rootIndex);
+  }
+  return res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ── Configuration ──────────────────────────────────────────────────────────
-const MODE        = (process.env.MODE || 'auto').toLowerCase();
+const MODE = (process.env.MODE || 'auto').toLowerCase();
 const SERIAL_PORT = process.env.SERIAL_PORT || 'COM7';
-const BAUD_RATE   = parseInt(process.env.BAUD_RATE  || '115200');
-const SERVER_PORT = parseInt(process.env.PORT        || '3000');
+const BAUD_RATE = parseInt(process.env.BAUD_RATE || '115200');
+const SERVER_PORT = parseInt(process.env.PORT || '3000');
 
 // ── Fall Alert Threshold ───────────────────────────────────────────────────
 const FALL_G_THRESHOLD = 3.5; // Matched to Arduino sketch threshold
@@ -54,9 +59,9 @@ let latestData = {
 };
 
 // Track connection state
-let esp32Ip       = null;
-let serialActive  = false;
-let dataSource    = 'none';   // 'serial' | 'wifi' | 'simulate'
+let esp32Ip = null;
+let serialActive = false;
+let dataSource = 'none';   // 'serial' | 'wifi' | 'simulate'
 
 // ── Get local WiFi IP for display ─────────────────────────────────────────
 function getLocalIp() {
@@ -101,23 +106,23 @@ function parseLine(line) {
     const cleanBpm = (rawBpm > BPM_VALID_MIN && rawBpm <= BPM_VALID_MAX) ? rawBpm : 0;
 
     return {
-      ecg:        parts['ECG']            ?? 0,
-      bpm:        cleanBpm,
-      piezo:      parts['Piezo_Force']    ?? 0,
-      kicks:      parts['Kicks_Total']    ?? 0,
-      motion:     parts['Motion_Total_G'] ?? 0,
-      temp:       (parts['Temp_C'] && parts['Temp_C'] >= 30) ? parts['Temp_C'] : 35.0,
-      fallAlert:  parts['Fall_Alert'] === 1,
-      sosCall:    parts['SOS_Call'] === 1,
-      pressCount: parts['Press_Count']    ?? 0,
-      mpuOK:      parts['MPU_OK'] !== 0,
-      timestamp:  Date.now()
+      ecg: parts['ECG'] ?? 0,
+      bpm: cleanBpm,
+      piezo: parts['Piezo_Force'] ?? 0,
+      kicks: parts['Kicks_Total'] ?? 0,
+      motion: parts['Motion_Total_G'] ?? 0,
+      temp: (parts['Temp_C'] && parts['Temp_C'] >= 30) ? parts['Temp_C'] : 35.0,
+      fallAlert: parts['Fall_Alert'] === 1,
+      sosCall: parts['SOS_Call'] === 1,
+      pressCount: parts['Press_Count'] ?? 0,
+      mpuOK: parts['MPU_OK'] !== 0,
+      timestamp: Date.now()
     };
   } catch { return null; }
 }
 
 function appendHistory(data) {
-  ['ecg','bpm','piezo','kicks','motion','temp'].forEach(k => {
+  ['ecg', 'bpm', 'piezo', 'kicks', 'motion', 'temp'].forEach(k => {
     history[k].push(data[k]);
     if (history[k].length > MAX_HISTORY) history[k].shift();
   });
@@ -126,16 +131,12 @@ function appendHistory(data) {
 }
 
 // ── Telegram Emergency Alert Dispatcher ──────────────────────────────────────
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const TELEGRAM_CHAT_ID   = process.env.TELEGRAM_CHAT_ID   || '';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8694243360:AAFXCsgiBvjJcgqKdl2delbTLU4u7RaocDo';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7953529788';
 let lastServerTelegramTime = 0;
 const TELEGRAM_SERVER_COOLDOWN = 15000;
 
 async function sendTelegramEmergencyAlert(text) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.warn('⚠️ Telegram bot credentials not configured in process.env');
-    return;
-  }
   const now = Date.now();
   if (now - lastServerTelegramTime < TELEGRAM_SERVER_COOLDOWN && lastServerTelegramTime !== 0) return;
   lastServerTelegramTime = now;
@@ -221,7 +222,7 @@ function trySerial() {
 
   let SerialPort, ReadlineParser;
   try {
-    ({ SerialPort }     = require('serialport'));
+    ({ SerialPort } = require('serialport'));
     ({ ReadlineParser } = require('@serialport/parser-readline'));
   } catch {
     console.log('ℹ️  serialport not available — skipping serial mode');
@@ -300,10 +301,10 @@ function simulateData() {
   if (phase > 0.45 && phase < 0.55) ecg += Math.sin((phase - 0.45) / 0.1 * Math.PI) * 700;
   const doKick = Math.random() < 0.005;
   if (doKick) simKicks++;
-  const piezo  = doKick ? 200 + Math.random() * 300 : Math.random() * 30;
+  const piezo = doKick ? 200 + Math.random() * 300 : Math.random() * 30;
   const doBump = Math.random() < 0.002;
   const motion = doBump ? 2.6 + Math.random() * 0.5 : 0.95 + (Math.random() - 0.5) * 0.1;
-  const temp   = 35.0;
+  const temp = 35.0;
   return {
     ecg: Math.round(ecg), bpm: parseFloat(simBpm.toFixed(1)),
     piezo: parseFloat(piezo.toFixed(1)), kicks: simKicks,
@@ -412,7 +413,7 @@ Your clinical guidance principles:
         model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user',   content: message }
+          { role: 'user', content: message }
         ],
         max_tokens: 800,
         temperature: 0.6,
@@ -423,7 +424,7 @@ Your clinical guidance principles:
         model: 'openai/gpt-oss-20b',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user',   content: message }
+          { role: 'user', content: message }
         ],
         max_tokens: 600,
         temperature: 0.6,
@@ -443,16 +444,16 @@ const sentAlerts = new Set();
 
 app.post('/api/alert', async (req, res) => {
   const { alertMessage, timestamp, motherName, recipientNumber } = req.body;
-  
+
   if (!alertMessage) return res.status(400).json({ error: 'No alertMessage provided.' });
-  
+
   // Deduplication check
   const alertId = `${alertMessage}_${timestamp}`;
   if (sentAlerts.has(alertId)) {
     return res.json({ success: true, duplicate: true, status: 'Already notified' });
   }
   sentAlerts.add(alertId);
-  
+
   // Prevent memory leak
   if (sentAlerts.size > 1000) {
     const firstItem = sentAlerts.values().next().value;
@@ -463,9 +464,9 @@ app.post('/api/alert', async (req, res) => {
   const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   const finalRecipient = recipientNumber || process.env.WHATSAPP_RECIPIENT_NUMBER;
   const finalMotherName = motherName || 'Mom';
-  
+
   const timeString = timestamp ? new Date(timestamp).toLocaleTimeString('en-IN') : new Date().toLocaleTimeString('en-IN');
-  
+
   const textBody = `🚨 MOMCARE 360 ALERT\n\nMother: ${finalMotherName}\n\nAlert:\n${alertMessage}\n\nTime:\n${timeString}\n\nPlease check the mother and take appropriate action if required.\n\nThis is an AI-assisted monitoring alert and not a medical diagnosis.`;
 
   if (token && phoneId && finalRecipient) {
@@ -484,7 +485,7 @@ app.post('/api/alert', async (req, res) => {
           text: { body: textBody }
         })
       });
-      
+
       const result = await response.json();
       if (response.ok) {
         return res.json({ success: true, status: 'SENT', recipient: finalRecipient });
@@ -528,30 +529,34 @@ io.on('connection', socket => {
 // ── Start server ───────────────────────────────────────────────────────────
 const localIp = getLocalIp();
 
-server.listen(SERVER_PORT, '0.0.0.0', () => {
-  console.log('\n╔══════════════════════════════════════════════════════════╗');
-  console.log(`║  🌐 MomCare Dashboard                                    ║`);
-  console.log(`║     Local:   http://localhost:${SERVER_PORT}                     ║`);
-  console.log(`║     Network: http://${localIp}:${SERVER_PORT}                ║`);
-  console.log(`║  📡 Mode: ${MODE.toUpperCase().padEnd(47)}║`);
-  console.log('╠══════════════════════════════════════════════════════════╣');
+if (!process.env.VERCEL) {
+  server.listen(SERVER_PORT, '0.0.0.0', () => {
+    console.log('\n╔══════════════════════════════════════════════════════════╗');
+    console.log(`║  🌐 MomCare Dashboard                                    ║`);
+    console.log(`║     Local:   http://localhost:${SERVER_PORT}                     ║`);
+    console.log(`║     Network: http://${localIp}:${SERVER_PORT}                ║`);
+    console.log(`║  📡 Mode: ${MODE.toUpperCase().padEnd(47)}║`);
+    console.log('╠══════════════════════════════════════════════════════════╣');
 
-  if (MODE === 'simulate') {
-    console.log('║  🔄 Simulation mode — generating fake sensor data        ║');
-    console.log('╚══════════════════════════════════════════════════════════╝\n');
-    io.emit('portStatus', { status: 'simulating', message: 'Running in simulation mode' });
-    setInterval(() => broadcast(simulateData(), 'simulate'), 50);
-  } else if (MODE === 'wifi') {
-    console.log(`║  📡 WiFi only — ESP32 POST to:                           ║`);
-    console.log(`║     http://${localIp}:${SERVER_PORT}/api/data             ║`);
-    console.log('╚══════════════════════════════════════════════════════════╝\n');
-    io.emit('portStatus', { status: 'wifi_waiting', message: 'WiFi mode — waiting for ESP32...' });
-  } else {
-    // AUTO or SERIAL: try serial and ALSO accept WiFi POSTs
-    console.log(`║  🔌 Serial: ${SERIAL_PORT} at ${BAUD_RATE} baud                     ║`);
-    console.log(`║  📡 WiFi POST: http://${localIp}:${SERVER_PORT}/api/data  ║`);
-    console.log('║  (whichever connects first will stream live data)        ║');
-    console.log('╚══════════════════════════════════════════════════════════╝\n');
-    trySerial();
-  }
-});
+    if (MODE === 'simulate') {
+      console.log('║  🔄 Simulation mode — generating fake sensor data        ║');
+      console.log('╚══════════════════════════════════════════════════════════╝\n');
+      io.emit('portStatus', { status: 'simulating', message: 'Running in simulation mode' });
+      setInterval(() => broadcast(simulateData(), 'simulate'), 50);
+    } else if (MODE === 'wifi') {
+      console.log(`║  📡 WiFi only — ESP32 POST to:                           ║`);
+      console.log(`║     http://${localIp}:${SERVER_PORT}/api/data             ║`);
+      console.log('╚══════════════════════════════════════════════════════════╝\n');
+      io.emit('portStatus', { status: 'wifi_waiting', message: 'WiFi mode — waiting for ESP32...' });
+    } else {
+      // AUTO or SERIAL: try serial and ALSO accept WiFi POSTs
+      console.log(`║  🔌 Serial: ${SERIAL_PORT} at ${BAUD_RATE} baud                     ║`);
+      console.log(`║  📡 WiFi POST: http://${localIp}:${SERVER_PORT}/api/data  ║`);
+      console.log('║  (whichever connects first will stream live data)        ║');
+      console.log('╚══════════════════════════════════════════════════════════╝\n');
+      trySerial();
+    }
+  });
+}
+
+module.exports = app;
