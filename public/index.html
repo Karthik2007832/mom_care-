@@ -197,10 +197,7 @@
     <div class="nav-container">
       <div class="nav-tabs-group">
         <button class="module-tab active" id="tabDashboard" onclick="switchView('dashboard')">
-          <span data-i18n="navDashboard">Dashboard</span>
-        </button>
-        <button class="module-tab" id="tabDoctor" onclick="switchView('doctor')">
-          <span data-i18n="navDoctor">Doctor</span>
+          <span data-i18n="navDashboard">Doctor</span>
         </button>
         <button class="module-tab" id="tabMother" onclick="switchView('mother')">
           <span data-i18n="navMother">Mother</span>
@@ -509,136 +506,140 @@
             </div>
           </div>
         </div>
-    </div> <!-- /viewDashboard -->
 
-    <!-- ── VIEW 2: DOCTOR CLINICAL DASHBOARD ──────────────────────────── -->
-    <div id="viewDoctor" class="module-view hidden">
-      <div class="doctor-view-header">
-        <div class="doctor-title-group">
-          <h2>Doctor Clinical Dashboard</h2>
-          <p>Comprehensive Maternal-Fetal Telemetry & Clinical Diagnostic Surveillance</p>
-        </div>
-        <div class="doctor-conn-badge" id="doctorConnBadge">
-          <span class="live-dot" id="doctorLiveDot"></span>
-          <span id="doctorConnText">Waiting for Sensor Stream</span>
-        </div>
-      </div>
+        <!-- ── ROW 6: DOCTOR CLINICAL PRESCRIPTIONS & TELEGRAM MEDICINE REMINDERS ── -->
+        <section class="doctor-rx-section" aria-label="Doctor Prescription and Telegram Medicine Reminders">
+          <div class="section-header">
+            <div class="section-title-wrap">
+              <h2 class="section-title">💊 Doctor Prescription & Telegram Medicine Reminders</h2>
+              <span class="section-subtitle">Prescribe prenatal medications, set scheduled dosage alerts, and automatically broadcast reminders to the Mother via Telegram.</span>
+            </div>
+            <div class="telegram-status-badge">
+              <span class="telegram-icon">✈️</span>
+              <span class="telegram-status-text">Telegram Bot: <strong>@Momcareemergencyalarm_bot</strong></span>
+              <span class="tg-live-dot"></span>
+            </div>
+          </div>
 
-      <!-- Clinical Patient Profile Summary Banner -->
-      <div class="doctor-patient-banner">
-        <div class="doc-patient-item">
-          <span class="doc-label">Patient Name:</span>
-          <span class="doc-val" id="docPatientName">Patient</span>
-        </div>
-        <div class="doc-patient-item">
-          <span class="doc-label">Surveillance Profile:</span>
-          <span class="doc-val">Continuous Antepartum Telemetry</span>
-        </div>
-        <div class="doc-patient-item">
-          <span class="doc-label">Primary Facility:</span>
-          <span class="doc-val">Sri Shakthi College Health Wing / Coimbatore</span>
-        </div>
-        <div class="doc-patient-item">
-          <span class="doc-label">Telemetry Status:</span>
-          <span class="doc-val" id="docTelemetryStatus">Standby</span>
-        </div>
-      </div>
+          <div class="doctor-rx-container">
+            <!-- Left: Prescription Creation Form -->
+            <div class="doctor-rx-form-card">
+              <div class="rx-card-header">
+                <h3><span>✍️</span> Prescribe Medicine & Set Reminder</h3>
+              </div>
 
-      <!-- Doctor Clinical Vitals Matrix -->
-      <div class="doc-vitals-grid">
-        <div class="doc-vital-card">
-          <div class="doc-vital-top">
-            <span class="doc-vital-icon">❤️</span>
-            <span class="doc-vital-title">Maternal Heart Rate</span>
-            <span class="doc-range-badge">Ref: 60–100 BPM</span>
-          </div>
-          <div class="doc-vital-reading">
-            <span class="doc-reading-val" id="docValBpm">--</span>
-            <span class="doc-reading-unit">BPM</span>
-          </div>
-          <div class="doc-vital-status waiting" id="docStatusBpm">Waiting for sensor data</div>
-        </div>
+              <!-- Quick Suggestions Chips -->
+              <div class="rx-quick-chips">
+                <span class="chip-label">Quick Suggestions:</span>
+                <button type="button" class="rx-chip" onclick="fillRxTemplate('Folic Acid (5mg)', '1 tablet daily after breakfast with water', '08:30', 'After Breakfast', 'Prenatal Vitamin')">+ Folic Acid</button>
+                <button type="button" class="rx-chip" onclick="fillRxTemplate('Iron & Folic Acid (Ferrous Sulfate)', '1 tablet with citrus juice/water', '14:00', 'After Lunch', 'Iron / Anemia')">+ Iron Supplement</button>
+                <button type="button" class="rx-chip" onclick="fillRxTemplate('Calcium Carbonate (500mg) + Vit D3', '1 tablet after dinner with milk/water', '20:30', 'After Dinner', 'Calcium & Minerals')">+ Calcium + D3</button>
+                <button type="button" class="rx-chip" onclick="fillRxTemplate('Labetalol (100mg)', '1 tablet twice daily under BP monitoring', '09:00', 'After Breakfast', 'Blood Pressure')">+ Labetalol</button>
+              </div>
 
-        <div class="doc-vital-card">
-          <div class="doc-vital-top">
-            <span class="doc-vital-icon">🫁</span>
-            <span class="doc-vital-title">Blood Oxygen (SpO₂)</span>
-            <span class="doc-range-badge">Target: ≥95%</span>
-          </div>
-          <div class="doc-vital-reading">
-            <span class="doc-reading-val" id="docValSpo2">--</span>
-            <span class="doc-reading-unit">%</span>
-          </div>
-          <div class="doc-vital-status waiting" id="docStatusSpo2">Waiting for sensor data</div>
-        </div>
+              <form id="doctorRxForm" onsubmit="handleDoctorPrescribeSubmit(event)">
+                <div class="rx-form-row">
+                  <div class="rx-form-group flex-2">
+                    <label for="rxMedName">Medicine Name & Strength <span class="required">*</span></label>
+                    <input type="text" id="rxMedName" placeholder="e.g. Folic Acid 5mg, Iron Supplement" required />
+                  </div>
+                  <div class="rx-form-group flex-1">
+                    <label for="rxCategory">Type / Category</label>
+                    <select id="rxCategory">
+                      <option value="Prenatal Vitamin">Prenatal Vitamin</option>
+                      <option value="Iron / Anemia">Iron / Anemia</option>
+                      <option value="Calcium & Minerals">Calcium & Minerals</option>
+                      <option value="Blood Pressure">Blood Pressure</option>
+                      <option value="Thyroid Support">Thyroid Support</option>
+                      <option value="Progesterone">Progesterone</option>
+                      <option value="General Health">General Health</option>
+                    </select>
+                  </div>
+                </div>
 
-        <div class="doc-vital-card">
-          <div class="doc-vital-top">
-            <span class="doc-vital-icon">🌡️</span>
-            <span class="doc-vital-title">Core Body Temperature</span>
-            <span class="doc-range-badge">Ref: 36.1–37.5°C</span>
-          </div>
-          <div class="doc-vital-reading">
-            <span class="doc-reading-val" id="docValTemp">--</span>
-            <span class="doc-reading-unit">°C</span>
-          </div>
-          <div class="doc-vital-status waiting" id="docStatusTemp">Waiting for sensor data</div>
-        </div>
+                <div class="rx-form-row">
+                  <div class="rx-form-group flex-1">
+                    <label for="rxTime">Scheduled Time <span class="required">*</span></label>
+                    <input type="time" id="rxTime" value="08:30" required />
+                  </div>
+                  <div class="rx-form-group flex-1">
+                    <label for="rxFrequency">Frequency</label>
+                    <select id="rxFrequency">
+                      <option value="Once Daily (Morning)">Once Daily (Morning)</option>
+                      <option value="Once Daily (Night)">Once Daily (Night)</option>
+                      <option value="Twice Daily (Morning & Night)">Twice Daily (Morning & Night)</option>
+                      <option value="Three Times Daily">Three Times Daily</option>
+                      <option value="As Needed (SOS)">As Needed (SOS)</option>
+                    </select>
+                  </div>
+                  <div class="rx-form-group flex-1">
+                    <label for="rxMealRelation">Timing with Meals</label>
+                    <select id="rxMealRelation">
+                      <option value="After Breakfast">After Breakfast</option>
+                      <option value="After Lunch">After Lunch</option>
+                      <option value="After Dinner">After Dinner</option>
+                      <option value="Before Food (Empty Stomach)">Before Food</option>
+                      <option value="With Full Glass of Water">With Water</option>
+                    </select>
+                  </div>
+                </div>
 
-        <div class="doc-vital-card">
-          <div class="doc-vital-top">
-            <span class="doc-vital-icon">🩺</span>
-            <span class="doc-vital-title">Blood Pressure</span>
-            <span class="doc-range-badge">Normotensive &lt;120/80</span>
-          </div>
-          <div class="doc-vital-reading">
-            <span class="doc-reading-val" id="docValBp">-- / --</span>
-            <span class="doc-reading-unit">mmHg</span>
-          </div>
-          <div class="doc-vital-status waiting" id="docStatusBp">Waiting for sensor data</div>
-        </div>
+                <div class="rx-form-group">
+                  <label for="rxDosage">Dosage & Instructions for Mother</label>
+                  <input type="text" id="rxDosage" placeholder="e.g. 1 Tablet with warm water. Do not skip." />
+                </div>
 
-        <div class="doc-vital-card">
-          <div class="doc-vital-top">
-            <span class="doc-vital-icon">🩸</span>
-            <span class="doc-vital-title">Anemia Risk Screening</span>
-            <span class="doc-range-badge">Clinical Stratification</span>
-          </div>
-          <div class="doc-vital-reading">
-            <span class="doc-reading-val" id="docValAnemia">--</span>
-          </div>
-          <div class="doc-vital-status waiting" id="docStatusAnemia">Waiting for sensor data</div>
-        </div>
+                <div class="rx-form-group">
+                  <label for="rxTelegramChatId">Mother's Telegram Chat ID</label>
+                  <div class="rx-input-with-button">
+                    <input type="text" id="rxTelegramChatId" value="7953529788" placeholder="Telegram Chat ID (Default: 7953529788)" />
+                    <button type="button" class="rx-test-btn" onclick="testTelegramConnection()">⚡ Test Bot</button>
+                  </div>
+                </div>
 
-        <div class="doc-vital-card">
-          <div class="doc-vital-top">
-            <span class="doc-vital-icon">🚶</span>
-            <span class="doc-vital-title">Motion & Fall Vector</span>
-            <span class="doc-range-badge">Limit: &lt;3.5G</span>
-          </div>
-          <div class="doc-vital-reading">
-            <span class="doc-reading-val" id="docValMotion">--</span>
-            <span class="doc-reading-unit">G</span>
-          </div>
-          <div class="doc-vital-status waiting" id="docStatusMotion">Waiting for sensor data</div>
-        </div>
-      </div>
+                <div class="rx-btn-row">
+                  <button type="submit" class="rx-submit-btn" id="btnPrescribeTelegram">
+                    <span>✈️ Prescribe & Send to Telegram</span>
+                  </button>
+                </div>
+              </form>
+            </div>
 
-      <!-- Doctor Clinical AI & Diagnostics Section -->
-      <div class="doc-ai-assessment-panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <span>📋 Clinical AI Diagnosis & Automated Medical Assessment</span>
-            <span class="panel-badge ai-badge">CLINICAL DECISION SUPPORT</span>
+            <!-- Right: Active Prescriptions & Live Telegram Broadcast Log -->
+            <div class="doctor-rx-list-card">
+              <div class="rx-card-header">
+                <h3><span>📋</span> Active Prescriptions & Telegram Schedule</h3>
+                <button type="button" class="rx-send-all-btn" onclick="sendAllPrescriptionsToTelegram()" title="Broadcast full daily schedule to Mother via Telegram">
+                  ✈️ Send Full Daily Schedule
+                </button>
+              </div>
+
+              <div class="rx-prescriptions-table-wrapper" id="rxPrescriptionsList">
+                <!-- Dynamically populated -->
+              </div>
+
+              <!-- Live Telegram Notification Preview -->
+              <div class="telegram-preview-box">
+                <div class="tg-preview-header">
+                  <span>📱</span> Telegram Message Preview (What Mother Receives on Phone)
+                </div>
+                <div class="tg-preview-bubble" id="tgPreviewBubble">
+                  <div class="tg-msg-title">💊 MOMCARE CLINICAL PRESCRIPTION & REMINDER</div>
+                  <div class="tg-msg-meta">👩‍🍼 Mother: <span id="tgPreviewMother">Jane Doe</span> | 👨‍⚕️ Prescribed by: MomCare Doctor</div>
+                  <div class="tg-msg-divider">─────────────────────</div>
+                  <div class="tg-msg-body" id="tgPreviewContent">
+                    ⏰ <b>Scheduled Time:</b> 08:30 AM (After Breakfast)<br/>
+                    📋 <b>Medicine:</b> Folic Acid 5mg (Tab)<br/>
+                    🏷️ <b>Category:</b> Prenatal Vitamin<br/>
+                    💊 <b>Instructions:</b> 1 tablet daily with warm water. Do not skip.
+                  </div>
+                  <div class="tg-msg-footer">🔔 Reminder active. Take care of yourself & baby!</div>
+                </div>
+              </div>
+            </div>
           </div>
-          <button class="nav-btn" style="background: var(--accent-rose); color: white;" onclick="exportSensorReportPdf()">📄
-            Export Clinical Report (PDF)</button>
-        </div>
-        <div class="doc-assessment-body" id="doctorClinicalSummary">
-          <p>Awaiting live biometric packets from ESP32 bio-sensor array before generating clinical evaluation...</p>
-        </div>
-      </div>
-    </div>
+        </section>
+      </div> <!-- /viewDashboard -->
 
     <!-- ── VIEW 3: MOTHER MODULE (NO GRAPHS, STATUS CARDS ONLY) ──────── -->
     <div id="viewMother" class="module-view hidden">

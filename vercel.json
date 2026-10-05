@@ -6,6 +6,10 @@
       "dest": "/api/chat.js"
     },
     {
+      "src": "/api/send-medicine-telegram",
+      "dest": "/api/send-medicine-telegram.js"
+    },
+    {
       "handle": "filesystem"
     },
     {

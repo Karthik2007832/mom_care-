@@ -196,6 +196,43 @@ app.post('/api/send-telegram', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Telegram Medicine Prescription & Reminder Dispatcher ───────────────────
+app.post('/api/send-medicine-telegram', async (req, res) => {
+  const { medicineName, dosage, time, mealRelation, category, notes, chatId, motherName } = req.body || {};
+  const targetChatId = chatId || TELEGRAM_CHAT_ID;
+  const patient = motherName || 'Mom';
+
+  const telegramMsg =
+    `💊 *MOMCARE CLINICAL PRESCRIPTION & MEDICINE REMINDER* 💊\n\n` +
+    `👩‍🍼 *Patient (Mother):* ${patient}\n` +
+    `👨‍⚕️ *Prescribed by:* MomCare Obstetric Physician\n` +
+    `⏰ *Scheduled Time:* ${time || 'Scheduled Daily'} (${mealRelation || 'As Directed'})\n\n` +
+    `📋 *Medicine:* *${medicineName || 'Prescribed Medicine'}*\n` +
+    `🏷️ *Category:* ${category || 'Prenatal Medication'}\n` +
+    `💊 *Dosage Instructions:* ${dosage || '1 dose as directed by physician'}\n` +
+    (notes ? `📝 *Doctor Notes:* ${notes}\n\n` : '\n') +
+    `🔔 *Reminder:* Take this medication on time with water. If you feel unwell or nauseous, please inform your caregiver.\n\n` +
+    `— MOMCARE 360 Autonomous Maternal Surveillance System`;
+
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: targetChatId,
+        text: telegramMsg,
+        parse_mode: 'Markdown'
+      })
+    });
+    const result = await resp.json();
+    return res.json({ ok: result.ok, result });
+  } catch (err) {
+    console.error('Failed to send medicine Telegram reminder:', err.message);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ============================================================================
 //   WIFI ENDPOINT — ESP32 POSTs here
 // ============================================================================

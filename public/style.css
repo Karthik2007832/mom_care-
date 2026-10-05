@@ -2711,4 +2711,384 @@ canvas { display: block; width: 100%; }
   color: var(--text-secondary);
 }
 
+/* ── DOCTOR PRESCRIPTIONS & TELEGRAM REMINDER SECTION ─────────────────── */
+.doctor-rx-section {
+  margin-top: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(16px);
+}
+
+.telegram-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  border-radius: 50px;
+  padding: 6px 16px;
+  font-size: 0.82rem;
+  color: #38bdf8;
+}
+
+.telegram-status-badge strong {
+  color: #fff;
+}
+
+.tg-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  animation: pulseDot 1.5s infinite;
+}
+
+.doctor-rx-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 18px;
+}
+
+@media (max-width: 1024px) {
+  .doctor-rx-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.doctor-rx-form-card,
+.doctor-rx-list-card {
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-md);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rx-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 12px;
+}
+
+.rx-card-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rx-quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.rx-quick-chips .chip-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.rx-chip {
+  background: rgba(244, 63, 110, 0.12);
+  border: 1px solid rgba(244, 63, 110, 0.3);
+  color: #fb7185;
+  border-radius: 50px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rx-chip:hover {
+  background: rgba(244, 63, 110, 0.25);
+  transform: translateY(-1px);
+}
+
+.rx-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.rx-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.rx-form-group.flex-1 { flex: 1; }
+.rx-form-group.flex-2 { flex: 2; }
+
+.rx-form-group label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.rx-form-group label .required {
+  color: var(--accent-rose);
+}
+
+.rx-form-group input,
+.rx-form-group select {
+  background: rgba(10, 15, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  padding: 9px 13px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.rx-form-group input:focus,
+.rx-form-group select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.rx-input-with-button {
+  display: flex;
+  gap: 8px;
+}
+
+.rx-input-with-button input {
+  flex: 1;
+}
+
+.rx-test-btn {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  border-radius: var(--radius-sm);
+  padding: 0 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.rx-test-btn:hover {
+  background: rgba(56, 189, 248, 0.25);
+}
+
+.rx-submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  transition: all 0.2s ease;
+}
+
+.rx-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.5);
+}
+
+.rx-send-all-btn {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+  border-radius: 50px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rx-send-all-btn:hover {
+  background: rgba(16, 185, 129, 0.25);
+}
+
+.rx-prescriptions-table-wrapper {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rx-med-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: background 0.2s;
+}
+
+.rx-med-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.rx-med-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.rx-med-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rx-med-name {
+  font-weight: 700;
+  color: #fff;
+  font-size: 0.92rem;
+}
+
+.rx-med-category-badge {
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  border-radius: 50px;
+  background: rgba(244, 63, 110, 0.15);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 110, 0.3);
+  font-weight: 600;
+}
+
+.rx-med-schedule {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rx-time-badge {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.rx-med-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rx-action-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rx-action-btn.send {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.rx-action-btn.send:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+
+.rx-action-btn.delete {
+  color: #f43f5e;
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.rx-action-btn.delete:hover {
+  background: rgba(244, 63, 94, 0.15);
+}
+
+.telegram-preview-box {
+  background: #17212b;
+  border: 1px solid #242f3d;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.tg-preview-header {
+  font-size: 0.72rem;
+  color: #6c7883;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tg-preview-bubble {
+  background: #182533;
+  border-left: 3px solid #2b95d6;
+  border-radius: 4px 8px 8px 4px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #e4ecf2;
+}
+
+.tg-msg-title {
+  font-weight: 700;
+  color: #42abeb;
+  margin-bottom: 4px;
+}
+
+.tg-msg-meta {
+  font-size: 0.72rem;
+  color: #7f91a4;
+  margin-bottom: 6px;
+}
+
+.tg-msg-divider {
+  color: #242f3d;
+  margin-bottom: 6px;
+}
+
+.tg-msg-body {
+  margin-bottom: 6px;
+}
+
+.tg-msg-footer {
+  font-size: 0.72rem;
+  color: #38bdf8;
+  font-style: italic;
+}
+
 

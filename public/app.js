@@ -1887,17 +1887,22 @@ function deriveAnemia(bpm) {
 
 // ── View Switching Logic ──────────────────────────────────────────────────
 window.switchView = function(viewId) {
-  currentView = viewId;
+  // Normalize 'doctor' or 'dashboard' to 'dashboard' (now the Doctor module)
+  const normalizedViewId = (viewId === 'doctor') ? 'dashboard' : viewId;
+  currentView = normalizedViewId;
 
   // Update tabs
   document.querySelectorAll('.module-tab').forEach(tab => {
-    tab.classList.toggle('active', tab.getAttribute('data-view') === viewId || tab.id === `tab${capitalize(viewId)}`);
+    const isTarget = tab.getAttribute('data-view') === normalizedViewId ||
+                     tab.id === `tab${capitalize(normalizedViewId)}` ||
+                     ((normalizedViewId === 'dashboard') && (tab.id === 'tabDashboard' || tab.id === 'tabDoctor'));
+    tab.classList.toggle('active', isTarget);
   });
 
   // Toggle views
   const viewMap = {
     'dashboard': 'viewDashboard',
-    'doctor': 'viewDoctor',
+    'doctor': 'viewDashboard',
     'mother': 'viewMother',
     'relative': 'viewRelative',
     'hospitals': 'viewHospitals',
@@ -1907,7 +1912,7 @@ window.switchView = function(viewId) {
   Object.entries(viewMap).forEach(([k, elId]) => {
     const el = document.getElementById(elId);
     if (!el) return;
-    if (k === viewId) {
+    if (k === normalizedViewId) {
       el.classList.remove('hidden');
       el.classList.add('active');
     } else {
@@ -1917,9 +1922,9 @@ window.switchView = function(viewId) {
   });
 
   // Special view triggers
-  if (viewId === 'hospitals') {
+  if (normalizedViewId === 'hospitals') {
     setTimeout(initNearbyHospitalsMap, 200);
-  } else if (viewId === 'chatbot') {
+  } else if (normalizedViewId === 'chatbot') {
     const win = document.getElementById('cbWorkspaceHistory');
     if (win) win.scrollTop = win.scrollHeight;
   }
@@ -1932,7 +1937,7 @@ function capitalize(s) {
 // ── Multilingual Dictionary (6 Languages) ────────────────────────────────
 const i18n = {
   en: {
-    navDashboard: "Dashboard",
+    navDashboard: "Doctor",
     navDoctor: "Doctor",
     navMother: "Mother",
     navRelative: "Relative / Caregiver",
@@ -1993,7 +1998,7 @@ const i18n = {
     ]
   },
   ta: {
-    navDashboard: "முகப்பு",
+    navDashboard: "மருத்துவர் (Doctor)",
     navDoctor: "மருத்துவர்",
     navMother: "தாய் பக்கம்",
     navRelative: "உறவினர் / பராமரிப்பாளர்",
@@ -2054,7 +2059,7 @@ const i18n = {
     ]
   },
   hi: {
-    navDashboard: "डैशबोर्ड",
+    navDashboard: "डॉक्टर (Doctor)",
     navDoctor: "चिकित्सक",
     navMother: "माँ का मॉड्यूल",
     navRelative: "रिश्तेदार / देखभालकर्ता",
@@ -2115,7 +2120,7 @@ const i18n = {
     ]
   },
   te: {
-    navDashboard: "డ్యాష్‌బోర్డ్",
+    navDashboard: "వైద్యుడు (Doctor)",
     navDoctor: "వైద్యుడు",
     navMother: "తల్లి మాడ్యూల్",
     navRelative: "బంధువు / సంరక్షకుడు",
@@ -2176,7 +2181,7 @@ const i18n = {
     ]
   },
   ml: {
-    navDashboard: "ഡാഷ്‌ബോർഡ്",
+    navDashboard: "ഡോക്ടർ (Doctor)",
     navDoctor: "ഡോക്ടർ",
     navMother: "അമ്മയുടെ മൊഡ്യൂൾ",
     navRelative: "ബന്ധു / പരിചാരകൻ",
@@ -2237,7 +2242,7 @@ const i18n = {
     ]
   },
   kn: {
-    navDashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    navDashboard: "ವೈದ್ಯರು (Doctor)",
     navDoctor: "ವೈದ್ಯರು",
     navMother: "ತಾಯಿಯ ಮಾಡ್ಯೂಲ್",
     navRelative: "ಸಂಬಂಧಿ / ಆರೈಕೆದಾರ",
@@ -3305,9 +3310,394 @@ setInterval(() => {
   }
 }, 2500);
 
+// ══════════════════════════════════════════════════════════════════════════
+// ── DOCTOR PRESCRIPTIONS & TELEGRAM MEDICINE REMINDERS ───────────────────
+// ══════════════════════════════════════════════════════════════════════════
+
+const DEFAULT_PRESCRIPTIONS = [
+  {
+    id: 'rx_1',
+    name: 'Folic Acid (5mg)',
+    category: 'Prenatal Vitamin',
+    dosage: '1 tablet daily with warm water',
+    time: '08:30',
+    frequency: 'Once Daily (Morning)',
+    mealRelation: 'After Breakfast',
+    chatId: '7953529788',
+    notes: 'Essential for fetal neural tube development. Do not skip.',
+    prescribedAt: new Date().toLocaleDateString('en-IN')
+  },
+  {
+    id: 'rx_2',
+    name: 'Iron & Folic Acid (Ferrous Sulfate)',
+    category: 'Iron / Anemia',
+    dosage: '1 tablet with citrus juice/water',
+    time: '14:00',
+    frequency: 'Once Daily (Afternoon)',
+    mealRelation: 'After Lunch',
+    chatId: '7953529788',
+    notes: 'Boosts maternal hemoglobin and oxygen transport. Avoid tea/coffee within 1 hour.',
+    prescribedAt: new Date().toLocaleDateString('en-IN')
+  },
+  {
+    id: 'rx_3',
+    name: 'Calcium Carbonate (500mg) + Vit D3',
+    category: 'Calcium & Minerals',
+    dosage: '1 tablet with warm milk/water',
+    time: '20:30',
+    frequency: 'Once Daily (Night)',
+    mealRelation: 'After Dinner',
+    chatId: '7953529788',
+    notes: 'Supports fetal skeletal bone mineralization and prevents maternal bone density loss.',
+    prescribedAt: new Date().toLocaleDateString('en-IN')
+  }
+];
+
+function getPrescriptions() {
+  try {
+    const saved = localStorage.getItem('momcare_prescriptions');
+    if (saved) return JSON.parse(saved);
+  } catch (e) {}
+  return DEFAULT_PRESCRIPTIONS;
+}
+
+function savePrescriptions(list) {
+  try {
+    localStorage.setItem('momcare_prescriptions', JSON.stringify(list));
+  } catch (e) {}
+}
+
+window.fillRxTemplate = function(name, dosage, time, meal, category) {
+  const elName = document.getElementById('rxMedName');
+  const elDosage = document.getElementById('rxDosage');
+  const elTime = document.getElementById('rxTime');
+  const elMeal = document.getElementById('rxMealRelation');
+  const elCat = document.getElementById('rxCategory');
+
+  if (elName) elName.value = name;
+  if (elDosage) elDosage.value = dosage;
+  if (elTime) elTime.value = time;
+  if (elMeal) elMeal.value = meal;
+  if (elCat) elCat.value = category;
+
+  updateTgPreview();
+  if (typeof showReportToast === 'function') {
+    showReportToast(`Template selected: ${name}`);
+  }
+};
+
+function updateTgPreview(med) {
+  const preview = document.getElementById('tgPreviewContent');
+  const motherEl = document.getElementById('tgPreviewMother');
+  const motherName = (window.patientData && window.patientData.name) || (document.getElementById('motherNameInput')?.value) || 'Mom';
+
+  if (motherEl) motherEl.textContent = motherName;
+
+  const name = med ? med.name : (document.getElementById('rxMedName')?.value || 'Folic Acid 5mg (Tab)');
+  const time = med ? med.time : (document.getElementById('rxTime')?.value || '08:30');
+  const meal = med ? med.mealRelation : (document.getElementById('rxMealRelation')?.value || 'After Breakfast');
+  const cat = med ? med.category : (document.getElementById('rxCategory')?.value || 'Prenatal Vitamin');
+  const dosage = med ? med.dosage : (document.getElementById('rxDosage')?.value || '1 tablet daily with warm water. Do not skip.');
+
+  if (preview) {
+    preview.innerHTML = `
+      ⏰ <b>Scheduled Time:</b> ${time} (${meal})<br/>
+      📋 <b>Medicine:</b> ${escapeHtml(name)}<br/>
+      🏷️ <b>Category:</b> ${escapeHtml(cat)}<br/>
+      💊 <b>Instructions:</b> ${escapeHtml(dosage)}
+    `;
+  }
+}
+
+async function dispatchTelegramMessage(chatId, text) {
+  const botToken = '8694243360:AAFXCsgiBvjJcgqKdl2delbTLU4u7RaocDo';
+  const targetChatId = chatId || '7953529788';
+
+  // 1. Try server backend endpoint
+  try {
+    const res = await fetch('/api/send-medicine-telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chatId: targetChatId,
+        message: text
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.ok) return true;
+    }
+  } catch (err) {
+    console.warn('Backend telegram send notice, falling back to direct:', err.message);
+  }
+
+  // 2. Direct browser Telegram Bot API dispatch
+  try {
+    const directRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: targetChatId,
+        text: text,
+        parse_mode: 'Markdown'
+      })
+    });
+    if (directRes.ok) {
+      const d = await directRes.json();
+      return !!d.ok;
+    }
+  } catch (directErr) {
+    console.error('Direct Telegram API error:', directErr);
+  }
+  return false;
+}
+
+window.handleDoctorPrescribeSubmit = async function(e) {
+  if (e) e.preventDefault();
+
+  const nameInput = document.getElementById('rxMedName');
+  const medName = nameInput ? nameInput.value.trim() : '';
+  if (!medName) return;
+
+  const category = document.getElementById('rxCategory')?.value || 'Prenatal Medication';
+  const time = document.getElementById('rxTime')?.value || '08:30';
+  const frequency = document.getElementById('rxFrequency')?.value || 'Once Daily';
+  const mealRelation = document.getElementById('rxMealRelation')?.value || 'After Breakfast';
+  const dosage = document.getElementById('rxDosage')?.value.trim() || '1 dose as prescribed';
+  const chatId = document.getElementById('rxTelegramChatId')?.value.trim() || '7953529788';
+  const motherName = (window.patientData && window.patientData.name) || (document.getElementById('motherNameInput')?.value) || 'Mom';
+
+  const submitBtn = document.getElementById('btnPrescribeTelegram');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<span>⏳ Dispatching to Telegram...</span>`;
+  }
+
+  const telegramMsg =
+    `💊 *MOMCARE CLINICAL PRESCRIPTION & MEDICINE REMINDER* 💊\n\n` +
+    `👩‍🍼 *Patient (Mother):* ${motherName}\n` +
+    `👨‍⚕️ *Prescribed by:* MomCare Obstetric Physician\n` +
+    `⏰ *Scheduled Time:* ${time} (${mealRelation} - ${frequency})\n\n` +
+    `📋 *Medicine:* *${medName}*\n` +
+    `🏷️ *Category:* ${category}\n` +
+    `💊 *Dosage Instructions:* ${dosage}\n\n` +
+    `🔔 *Reminder:* Take this medicine on time with water. Contact your doctor immediately if you experience dizziness, nausea, or discomfort.\n\n` +
+    `— MOMCARE 360 Autonomous Maternal Surveillance System`;
+
+  const success = await dispatchTelegramMessage(chatId, telegramMsg);
+
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = `<span>✈️ Prescribe & Send to Telegram</span>`;
+  }
+
+  // Save new prescription
+  const list = getPrescriptions();
+  const newRx = {
+    id: 'rx_' + Date.now(),
+    name: medName,
+    category,
+    dosage,
+    time,
+    frequency,
+    mealRelation,
+    chatId,
+    prescribedAt: new Date().toLocaleDateString('en-IN')
+  };
+  list.unshift(newRx);
+  savePrescriptions(list);
+
+  renderPrescriptionsList();
+  updateTgPreview(newRx);
+
+  // Clear inputs
+  if (nameInput) nameInput.value = '';
+  const dosageInput = document.getElementById('rxDosage');
+  if (dosageInput) dosageInput.value = '';
+
+  if (typeof showReportToast === 'function') {
+    if (success) {
+      showReportToast(`✅ Prescribed ${medName}! Dispatched to Mother's Telegram (+91 ${chatId})`, true);
+    } else {
+      showReportToast(`📋 Prescribed ${medName} saved! (Check Telegram bot connection)`);
+    }
+  }
+};
+
+window.sendPrescriptionReminderToTelegram = async function(id) {
+  const list = getPrescriptions();
+  const med = list.find(x => x.id === id);
+  if (!med) return;
+
+  const motherName = (window.patientData && window.patientData.name) || (document.getElementById('motherNameInput')?.value) || 'Mom';
+  const chatId = med.chatId || '7953529788';
+
+  const telegramMsg =
+    `⏰ *MOMCARE MEDICINE TIME REMINDER* ⏰\n\n` +
+    `👩‍🍼 Hello ${motherName}, this is your scheduled reminder to take your medication:\n\n` +
+    `📋 *Medicine:* *${med.name}*\n` +
+    `⏰ *Scheduled Time:* ${med.time} (${med.mealRelation || 'As Directed'})\n` +
+    `💊 *Dosage Instructions:* ${med.dosage || '1 dose with water'}\n\n` +
+    `🔔 Please take your medicine now with a full glass of water. Take care of yourself & baby!\n` +
+    `— MomCare 360 Clinical Care Team`;
+
+  if (typeof showReportToast === 'function') {
+    showReportToast(`📤 Sending reminder for ${med.name} to Telegram...`);
+  }
+
+  const success = await dispatchTelegramMessage(chatId, telegramMsg);
+  updateTgPreview(med);
+
+  if (typeof showReportToast === 'function') {
+    if (success) {
+      showReportToast(`✅ Reminder for ${med.name} sent to Telegram (+91 ${chatId})!`, true);
+    } else {
+      showReportToast(`⚠️ Reminder queued. Could not reach Telegram server.`);
+    }
+  }
+};
+
+window.sendAllPrescriptionsToTelegram = async function() {
+  const list = getPrescriptions();
+  if (!list || list.length === 0) {
+    if (typeof showReportToast === 'function') showReportToast('No active prescriptions found to send.');
+    return;
+  }
+
+  const motherName = (window.patientData && window.patientData.name) || (document.getElementById('motherNameInput')?.value) || 'Mom';
+  const chatId = list[0].chatId || '7953529788';
+
+  let scheduleText = '';
+  list.forEach((m, idx) => {
+    scheduleText += `${idx + 1}. *${m.name}* — ⏰ ${m.time} (${m.mealRelation})\n   💊 _${m.dosage}_\n\n`;
+  });
+
+  const telegramMsg =
+    `📋 *MOMCARE FULL DAILY MEDICINE SCHEDULE* 📋\n\n` +
+    `👩‍🍼 *Patient:* ${motherName}\n` +
+    `👨‍⚕️ *Clinical Service:* MomCare Maternal Health Center\n` +
+    `📅 *Date:* ${new Date().toLocaleDateString('en-IN')}\n\n` +
+    `Here is your full daily medicine routine prescribed by your doctor:\n\n` +
+    scheduleText +
+    `🔔 *Important:* Follow the exact timings with water. Keep your sensor worn during monitoring hours.\n` +
+    `— MOMCARE 360 Autonomous Maternal Surveillance System`;
+
+  if (typeof showReportToast === 'function') showReportToast('📤 Dispatching full daily schedule to Telegram...');
+  const success = await dispatchTelegramMessage(chatId, telegramMsg);
+
+  if (typeof showReportToast === 'function') {
+    if (success) {
+      showReportToast(`✅ Full daily schedule (${list.length} medicines) dispatched to Mother's Telegram!`, true);
+    } else {
+      showReportToast(`⚠️ Failed to broadcast to Telegram.`);
+    }
+  }
+};
+
+window.deletePrescription = function(id) {
+  let list = getPrescriptions();
+  list = list.filter(x => x.id !== id);
+  savePrescriptions(list);
+  renderPrescriptionsList();
+  if (typeof showReportToast === 'function') {
+    showReportToast('Prescription removed.');
+  }
+};
+
+window.testTelegramConnection = async function() {
+  const chatId = document.getElementById('rxTelegramChatId')?.value.trim() || '7953529788';
+  if (typeof showReportToast === 'function') showReportToast('⚡ Testing Telegram Bot connection...');
+
+  const text =
+    `⚡ *MOMCARE 360 TELEGRAM BOT CONNECTION ACTIVE* ⚡\n\n` +
+    `✅ Status: Verified & Operational\n` +
+    `🤖 Bot: @Momcareemergencyalarm_bot\n` +
+    `📱 Chat ID: ${chatId}\n` +
+    `⏱️ Timestamp: ${new Date().toLocaleTimeString('en-IN')}\n\n` +
+    `Your doctor can now prescribe medicines and send scheduled reminders directly to this chat.`;
+
+  const success = await dispatchTelegramMessage(chatId, text);
+  if (typeof showReportToast === 'function') {
+    if (success) {
+      showReportToast(`✅ Telegram Bot Connected! Test message sent to chat ID ${chatId}`, true);
+    } else {
+      showReportToast(`❌ Could not reach Telegram Bot. Check connection.`);
+    }
+  }
+};
+
+function renderPrescriptionsList() {
+  const container = document.getElementById('rxPrescriptionsList');
+  if (!container) return;
+
+  const list = getPrescriptions();
+  if (list.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 24px; font-size: 0.88rem;">No active prescriptions yet. Prescribe a medicine above to send Telegram reminders.</div>`;
+    return;
+  }
+
+  let html = '';
+  list.forEach(med => {
+    html += `
+      <div class="rx-med-item">
+        <div class="rx-med-info">
+          <div class="rx-med-name-row">
+            <span class="rx-med-name">${escapeHtml(med.name)}</span>
+            <span class="rx-med-category-badge">${escapeHtml(med.category || 'Medication')}</span>
+          </div>
+          <div class="rx-med-schedule">
+            <span>⏰ <strong class="rx-time-badge">${escapeHtml(med.time)}</strong> (${escapeHtml(med.mealRelation || med.frequency || 'Daily')})</span>
+            <span>💊 ${escapeHtml(med.dosage || '1 dose')}</span>
+          </div>
+        </div>
+        <div class="rx-med-actions">
+          <button type="button" class="rx-action-btn send" onclick="sendPrescriptionReminderToTelegram('${med.id}')" title="Send instant Telegram reminder to Mother">
+            ✈️ Remind
+          </button>
+          <button type="button" class="rx-action-btn delete" onclick="deletePrescription('${med.id}')" title="Delete prescription">
+            ✕
+          </button>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+// ── Automated Time-based Telegram Reminder Monitor ─────────────────────────
+const dispatchedTodayReminders = new Set();
+setInterval(() => {
+  const now = new Date();
+  const currentHours = String(now.getHours()).padStart(2, '0');
+  const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+  const currentTimeStr = `${currentHours}:${currentMinutes}`;
+  const todayKey = now.toDateString();
+
+  const list = getPrescriptions();
+  list.forEach(med => {
+    if (med.time === currentTimeStr) {
+      const reminderKey = `${todayKey}_${med.id}_${med.time}`;
+      if (!dispatchedTodayReminders.has(reminderKey)) {
+        dispatchedTodayReminders.add(reminderKey);
+        console.log(`⏰ Automated Telegram Medicine Reminder triggered for ${med.name} at ${currentTimeStr}`);
+        sendPrescriptionReminderToTelegram(med.id);
+      }
+    }
+  });
+}, 30000);
+
+// Live preview listener on input
+document.addEventListener('input', (e) => {
+  if (['rxMedName', 'rxTime', 'rxMealRelation', 'rxCategory', 'rxDosage'].includes(e.target?.id)) {
+    updateTgPreview();
+  }
+});
+
 // ── Startup Initialization ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   changeLanguage(currentLanguage);
+  renderPrescriptionsList();
+  updateTgPreview();
   // Start with strictly clean waiting state — NO fake normal values
   syncSharedModules({
     bpm: 0,
