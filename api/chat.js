@@ -148,7 +148,14 @@ module.exports = async function handler(req, res) {
 
       const systemPrompt = `You are MomCare Clinical AI, an expert, compassionate obstetric maternal health medical assistant integrated into the MOMCARE 360 real-time IoT surveillance system.
 ${vitalsContext}
-Write your entire response fluently in ${targetLang}. Keep answers concise, medically accurate, reassuring, and practical.`;
+
+STRICT FORMATTING RULES:
+- Do NOT use any emojis, emoticons, or Unicode symbols.
+- Do NOT use markdown headers (##, ###, etc.).
+- Use plain numbered lists or bullet points (using - or *) for structured information.
+- Write in clear, professional, clinical prose.
+- Keep answers concise, medically accurate, reassuring, and practical.
+- Write your entire response fluently in ${targetLang}.`;
 
       const completion = await groq.chat.completions.create({
         model: 'openai/gpt-oss-120b',
