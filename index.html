@@ -196,11 +196,14 @@
   <nav class="modules-nav-bar" aria-label="Main Navigation">
     <div class="nav-container">
       <div class="nav-tabs-group">
-        <button class="module-tab active" id="tabMother" onclick="switchView('mother')">
-          <span data-i18n="navMother">Mother</span>
+        <button class="module-tab active" id="tabDashboard" onclick="switchView('dashboard')">
+          <span data-i18n="navDashboard">Dashboard</span>
         </button>
-        <button class="module-tab" id="tabDoctorAdvice" onclick="switchView('doctor-advice')">
-          <span data-i18n="navDoctorAdvice">Doctor's Prescriptions</span>
+        <button class="module-tab" id="tabDoctor" onclick="switchView('doctor')">
+          <span data-i18n="navDoctor">Doctor</span>
+        </button>
+        <button class="module-tab" id="tabMother" onclick="switchView('mother')">
+          <span data-i18n="navMother">Mother</span>
         </button>
         <button class="module-tab" id="tabRelative" onclick="switchView('relative')">
           <span data-i18n="navRelative">Relative / Caregiver</span>
@@ -214,16 +217,6 @@
       </div>
 
       <div class="nav-actions-group">
-        <!-- Dedicated Doctor Portal Access Button -->
-        <button class="doc-portal-nav-btn" id="btnNavDoctorLogin" onclick="handleDoctorPortalNav()" title="Clinical Portal for Doctors">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-            <path d="M12 11V3"></path>
-            <path d="M8 7h8"></path>
-          </svg>
-          <span id="txtNavDoctorLogin">Doctor Portal</span>
-        </button>
         <div class="theme-toggle-box" title="Switch Theme (Dark / Light)">
           <span class="theme-toggle-icon theme-icon-moon" title="Dark Mode">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon">
@@ -275,300 +268,8 @@
   <!-- ═══════════════════════════════════════════════════════ MAIN LAYOUT -->
   <main class="dashboard-main">
 
-    <!-- ── VIEW 1: DOCTOR AUTHENTICATION / LOGIN PORTAL ────────────── -->
-    <div id="viewDoctorLogin" class="module-view hidden">
-      <div class="doc-login-wrapper">
-        <div class="doc-login-card">
-          <div class="doc-login-badge-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-              <path d="M12 11V3"></path>
-              <path d="M8 7h8"></path>
-            </svg>
-          </div>
-          <h2>Doctor & Obstetrician Clinical Gateway</h2>
-          <p class="doc-login-sub">
-            Secure clinical authentication for maternal biosensor telemetry, high-resolution ECG diagnostics, and prescription management.
-          </p>
-
-          <form id="docLoginForm" onsubmit="submitDoctorLogin(event)" class="doc-login-form">
-            <div class="doc-form-group">
-              <label for="docLoginId">Doctor Registration / Staff ID</label>
-              <input type="text" id="docLoginId" class="doc-input" placeholder="e.g. DR-SHARMA-902 or doctor" value="DR-SHARMA-902" required />
-              <span class="doc-form-hint">Authorized credentials: <code>DR-SHARMA-902</code> or <code>doctor</code></span>
-            </div>
-
-            <div class="doc-form-group">
-              <label for="docLoginDept">Department / Speciality</label>
-              <select id="docLoginDept" class="doc-select">
-                <option value="obgyn" selected>Obstetrics & Gynaecology (Maternal-Fetal)</option>
-                <option value="fetal">Perinatology & Fetal Medicine</option>
-                <option value="cardio">Maternal Cardiology</option>
-                <option value="emergency">Emergency Labour Triage</option>
-              </select>
-            </div>
-
-            <div class="doc-form-group">
-              <label for="docLoginPass">Clinical Access Passcode</label>
-              <input type="password" id="docLoginPass" class="doc-input" placeholder="Enter clinical passcode (default: doc123)" value="doc123" required />
-              <span class="doc-form-hint">Passcode: <code>doc123</code></span>
-            </div>
-
-            <div id="docLoginAlert" class="doc-login-alert error" style="display:none;"></div>
-
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
-              <button type="submit" class="doc-btn-primary">
-                🔐 Authenticate & Access Telemetry
-              </button>
-              <button type="button" class="doc-btn-demo" onclick="quickDoctorDemoLogin()">
-                ⚡ 1-Click Clinical Demo Access (Dr. A. Sharma)
-              </button>
-            </div>
-          </form>
-
-          <div class="doc-login-security-notice">
-            🛡️ Encrypted ABDM / HIPAA Compliant Telemetry Tunnel &bull; Hospital ID: #SST-COIMB-2026-OB
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── VIEW 2: PATIENT DOCTOR'S PRESCRIPTIONS TAB ───────────────────── -->
-    <div id="viewDoctorAdvice" class="module-view hidden">
-      <div class="patient-rx-container">
-        <!-- Banner Header -->
-        <div class="patient-rx-banner">
-          <div class="patient-rx-banner-info">
-            <h2>📋 Doctor's Prescriptions & Medication Schedule</h2>
-            <p>Prescribed by <strong>Dr. A. Sharma, MD, DGO</strong> &bull; Sri Shakthi Health Wing &bull; Daily Telegram Alerts Active</p>
-          </div>
-          <button class="nav-btn" style="background: linear-gradient(135deg, #0284c7, #06b6d4); color: white; border: none; padding: 10px 18px; border-radius: 50px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(2,132,199,0.3);" onclick="testSendTelegramReminder()">
-            ✈️ Test Telegram Reminder
-          </button>
-        </div>
-
-        <!-- Today's Intake Timing Grid -->
-        <div>
-          <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin-bottom: 14px;">
-            🕒 Today's Dose Schedule Overview
-          </h3>
-          <div class="today-dose-grid">
-            <div class="today-slot-card" id="slotCardMorning">
-              <div class="slot-header">
-                <div class="slot-name">🌅 Morning</div>
-                <div class="slot-time">08:00 AM (Breakfast)</div>
-              </div>
-              <div class="slot-meds-list" id="slotMorningList">
-                <span>Loading scheduled medicines...</span>
-              </div>
-              <button class="slot-check-btn" onclick="toggleSlotTaken('morning')">✔ Mark Dose Taken</button>
-            </div>
-
-            <div class="today-slot-card" id="slotCardAfternoon">
-              <div class="slot-header">
-                <div class="slot-name">☀️ Afternoon</div>
-                <div class="slot-time">01:00 PM (Lunch)</div>
-              </div>
-              <div class="slot-meds-list" id="slotAfternoonList">
-                <span>Loading scheduled medicines...</span>
-              </div>
-              <button class="slot-check-btn" onclick="toggleSlotTaken('afternoon')">✔ Mark Dose Taken</button>
-            </div>
-
-            <div class="today-slot-card" id="slotCardEvening">
-              <div class="slot-header">
-                <div class="slot-name">🌇 Evening</div>
-                <div class="slot-time">06:00 PM (Snack)</div>
-              </div>
-              <div class="slot-meds-list" id="slotEveningList">
-                <span>Loading scheduled medicines...</span>
-              </div>
-              <button class="slot-check-btn" onclick="toggleSlotTaken('evening')">✔ Mark Dose Taken</button>
-            </div>
-
-            <div class="today-slot-card" id="slotCardNight">
-              <div class="slot-header">
-                <div class="slot-name">🌙 Night</div>
-                <div class="slot-time">09:00 PM (Bedtime)</div>
-              </div>
-              <div class="slot-meds-list" id="slotNightList">
-                <span>Loading scheduled medicines...</span>
-              </div>
-              <button class="slot-check-btn" onclick="toggleSlotTaken('night')">✔ Mark Dose Taken</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Prescribed Tablets Cards -->
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
-            <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin: 0;">
-              💊 Prescribed Medications & Doctor's Instructions
-            </h3>
-            <span style="font-size: 0.85rem; color: var(--text-muted);">
-              Automated reminders are dispatched daily to Telegram: @Momcareemergencyalarm_bot
-            </span>
-          </div>
-
-          <div id="patientPrescriptionsList" class="doc-rx-list-wrap">
-            <!-- Dynamic prescription cards rendered by app.js -->
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── VIEW 2: DOCTOR CLINICAL DASHBOARD ──────────────────────────── -->
-    <div id="viewDoctor" class="module-view hidden">
-      <div class="doctor-view-header">
-        <div class="doctor-title-group">
-          <h2>Doctor Clinical Portal & Maternal Surveillance</h2>
-          <p>Continuous Antepartum Telemetry, Multi-Sensor Diagnostics & Prescription Authority</p>
-        </div>
-        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-          <div class="doctor-conn-badge" id="doctorConnBadge">
-            <span class="live-dot" id="doctorLiveDot"></span>
-            <span id="doctorConnText">Waiting for Sensor Stream</span>
-          </div>
-          <button class="nav-btn" style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" onclick="logoutDoctor()">
-            🚪 Logout Doctor Session
-          </button>
-        </div>
-      </div>
-
-      <!-- Clinical Patient Profile Summary Banner -->
-      <div class="doctor-patient-banner">
-        <div class="doc-patient-item">
-          <span class="doc-label">Patient Name:</span>
-          <span class="doc-val" id="docPatientName">Mrs. Priya Karthik (28W Antepartum)</span>
-        </div>
-        <div class="doc-patient-item">
-          <span class="doc-label">Attending Obstetrician:</span>
-          <span class="doc-val">Dr. A. Sharma, MD, DGO (#TN-MC-84920)</span>
-        </div>
-        <div class="doc-patient-item">
-          <span class="doc-label">Primary Facility:</span>
-          <span class="doc-val">Sri Shakthi College Health Wing / Coimbatore</span>
-        </div>
-        <div class="doc-patient-item">
-          <span class="doc-label">Telemetry Status:</span>
-          <span class="doc-val" id="docTelemetryStatus">Standby</span>
-        </div>
-      </div>
-
-      <!-- ── DOCTOR MEDICINE & PRESCRIPTION MANAGEMENT CONSOLE ─────────── -->
-      <section class="doc-rx-section" aria-label="Prescription Management">
-        <div class="doc-rx-header">
-          <div class="doc-rx-title-group">
-            <h3>💊 Prescription & Medication Schedule Engine</h3>
-            <p>Prescribe, update mid-course, configure daily intake times, and dispatch automated Telegram reminders.</p>
-          </div>
-          <div class="doc-rx-controls">
-            <button class="doc-rx-submit-btn" style="background: linear-gradient(135deg, #0284C7, #0369A1);" onclick="togglePrescriptionForm()">
-              ➕ Prescribe New Medication
-            </button>
-          </div>
-        </div>
-
-        <!-- Collapsible / Editable Prescription Composer -->
-        <div class="doc-rx-composer-card" id="docRxComposer" style="display: block;">
-          <h4 id="composerHeading" style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Prescribe Medication Schedule</h4>
-          <input type="hidden" id="editRxId" value="" />
-          <div class="doc-rx-form-grid">
-            <div class="doc-form-group">
-              <label for="inputMedName">Medicine Name & Formulation *</label>
-              <input type="text" id="inputMedName" class="doc-input" placeholder="e.g. Ferrous Ascorbate + Folic Acid" required />
-              <div class="doc-quick-rx-tags">
-                <span class="quick-rx-tag" onclick="selectQuickMed('Ferrous Ascorbate + Folic Acid', '100mg / 1.5mg (1 Tablet)', 'Take after breakfast with citrus juice to boost hemoglobin', 30, ['Morning', 'Night'])">Iron + Folic Acid</span>
-                <span class="quick-rx-tag" onclick="selectQuickMed('Calcium Carbonate + Vitamin D3', '500mg + 250 IU (1 Tablet)', 'Take 2 hours after lunch. Essential for fetal bone mineralization', 30, ['Afternoon'])">Calcium + Vit D3</span>
-                <span class="quick-rx-tag" onclick="selectQuickMed('Progesterone Sustained Release', '200mg (1 Capsule)', 'Take at bedtime. Supports luteal and placental stability', 30, ['Night'])">Progesterone 200mg</span>
-                <span class="quick-rx-tag" onclick="selectQuickMed('L-Arginine + DHA Sachet', '3g Granules in Water', 'Take once daily in evening. Enhances uteroplacental blood flow', 30, ['Evening'])">L-Arginine Sachet</span>
-              </div>
-            </div>
-
-            <div class="doc-form-group">
-              <label for="inputMedDosage">Dosage & Strength *</label>
-              <input type="text" id="inputMedDosage" class="doc-input" placeholder="e.g. 100mg (1 Tablet)" value="1 Tablet" required />
-            </div>
-
-            <div class="doc-form-group">
-              <label for="selectMedDuration">Course Duration (Doctor Authority) *</label>
-              <select id="selectMedDuration" class="doc-select">
-                <option value="30" selected>1 Month (30 Days) — Recommended</option>
-                <option value="15">15 Days (2 Weeks)</option>
-                <option value="60">2 Months (60 Days)</option>
-                <option value="90">3 Months (90 Days / Trimester)</option>
-                <option value="7">7 Days (1 Week Acute)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="doc-form-group">
-            <label>Intake Schedule Times (Automated Telegram Reminders Triggered Daily) *</label>
-            <div class="doc-timing-group">
-              <label class="timing-chip-label">
-                <input type="checkbox" id="chkTimeMorning" value="Morning" checked />
-                <span>🌅 Morning (08:00 AM)</span>
-              </label>
-              <label class="timing-chip-label">
-                <input type="checkbox" id="chkTimeAfternoon" value="Afternoon" />
-                <span>☀️ Afternoon (01:00 PM)</span>
-              </label>
-              <label class="timing-chip-label">
-                <input type="checkbox" id="chkTimeEvening" value="Evening" />
-                <span>🌇 Evening (06:00 PM)</span>
-              </label>
-              <label class="timing-chip-label">
-                <input type="checkbox" id="chkTimeNight" value="Night" checked />
-                <span>🌙 Night (09:00 PM)</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="doc-form-group">
-            <label for="inputMedNotes">Clinical Explanation & Notes for Mother (Optional / Recommended)</label>
-            <textarea id="inputMedNotes" class="doc-textarea" rows="2" placeholder="Explain why the patient needs to take this tablet and special instructions (e.g. Take after food with warm water to prevent nausea and enhance hemoglobin absorption)..."></textarea>
-          </div>
-
-          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
-            <button type="button" class="doc-rx-btn-small" onclick="resetPrescriptionForm()">Cancel</button>
-            <button type="button" class="doc-rx-submit-btn" onclick="savePrescriptionFromDoctor()">
-              ✅ Save & Push Prescription to Patient (+ Send Telegram Alert)
-            </button>
-          </div>
-        </div>
-
-        <!-- Prescriptions Matrix Table / Cards -->
-        <div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-            <h4 style="font-size:1.05rem; font-weight:700; color:var(--text-primary);">Active Prescribed Medications (Doctor Mid-Section Authority)</h4>
-            <span style="font-size:0.8rem; color:var(--text-muted);">Doctor can edit dosage, duration, or discontinue anytime</span>
-          </div>
-          <div class="doc-rx-list-wrap" id="doctorPrescriptionsList">
-            <!-- Rendered dynamically by app.js -->
-          </div>
-        </div>
-      </section>
-
-      <!-- ── DOCTOR'S SENSOR TELEMETRY & BIOSENSOR SURVEILLANCE DASHBOARD ── -->
-      <div style="margin-top: 24px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-        <div>
-          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;">
-            📡 Live Telemetry & Biosensor Surveillance Suite
-          </h3>
-          <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0;">
-            Continuous data streams from AD8232 ECG, LM35D Temperature, Piezo Fetal Kick & MPU6050 Motion Sensors
-          </p>
-        </div>
-        <button onclick="document.getElementById('btnConnectBLE').click()"
-          style="padding: 8px 18px; border-radius: 50px; background: rgba(6,182,212,0.12); border: 1px solid rgba(6,182,212,0.5); color: #06B6D4; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 0 20px rgba(6,182,212,0.2); transition: all 0.3s;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="m7 7 10 10-5 5V2l5 5-10 10" />
-          </svg>
-          Connect MomCare_ESP32
-        </button>
-      </div>
+    <!-- ── VIEW 1: MAIN DASHBOARD ──────────────────────────────────────── -->
+    <div id="viewDashboard" class="module-view active">
 
       <!-- ── BLUETOOTH STANDBY / ACTIVATION BANNER ──────────────────────── -->
       <div id="bleStandbyBanner" class="ble-standby-banner">
@@ -580,7 +281,8 @@
         </div>
         <div class="ble-banner-info">
           <div class="ble-banner-title">Bluetooth Standby Mode</div>
-          <div class="ble-banner-desc">Connect via Bluetooth to stream live ECG, heart rate, kicks, and temperature sensor data.</div>
+          <div class="ble-banner-desc">Connect via Bluetooth to stream live ECG, heart rate, kicks, and temperature
+            sensor data.</div>
         </div>
         <button class="ble-banner-action-btn" onclick="document.getElementById('btnConnectBLE').click()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -807,7 +509,40 @@
             </div>
           </div>
         </div>
-      </section>
+    </div> <!-- /viewDashboard -->
+
+    <!-- ── VIEW 2: DOCTOR CLINICAL DASHBOARD ──────────────────────────── -->
+    <div id="viewDoctor" class="module-view hidden">
+      <div class="doctor-view-header">
+        <div class="doctor-title-group">
+          <h2>Doctor Clinical Dashboard</h2>
+          <p>Comprehensive Maternal-Fetal Telemetry & Clinical Diagnostic Surveillance</p>
+        </div>
+        <div class="doctor-conn-badge" id="doctorConnBadge">
+          <span class="live-dot" id="doctorLiveDot"></span>
+          <span id="doctorConnText">Waiting for Sensor Stream</span>
+        </div>
+      </div>
+
+      <!-- Clinical Patient Profile Summary Banner -->
+      <div class="doctor-patient-banner">
+        <div class="doc-patient-item">
+          <span class="doc-label">Patient Name:</span>
+          <span class="doc-val" id="docPatientName">Patient</span>
+        </div>
+        <div class="doc-patient-item">
+          <span class="doc-label">Surveillance Profile:</span>
+          <span class="doc-val">Continuous Antepartum Telemetry</span>
+        </div>
+        <div class="doc-patient-item">
+          <span class="doc-label">Primary Facility:</span>
+          <span class="doc-val">Sri Shakthi College Health Wing / Coimbatore</span>
+        </div>
+        <div class="doc-patient-item">
+          <span class="doc-label">Telemetry Status:</span>
+          <span class="doc-val" id="docTelemetryStatus">Standby</span>
+        </div>
+      </div>
 
       <!-- Doctor Clinical Vitals Matrix -->
       <div class="doc-vitals-grid">
@@ -905,8 +640,8 @@
       </div>
     </div>
 
-    <!-- ── VIEW 3: MOTHER MODULE (PATIENT DEFAULT VIEW, NO GRAPHS) ─── -->
-    <div id="viewMother" class="module-view active">
+    <!-- ── VIEW 3: MOTHER MODULE (NO GRAPHS, STATUS CARDS ONLY) ──────── -->
+    <div id="viewMother" class="module-view hidden">
       <!-- Hardware Connection Status Bar -->
       <div class="hw-connection-bar" id="motherHwBar">
         <div class="hw-conn-indicator waiting" id="motherHwIndicator">
@@ -1019,9 +754,6 @@
             <div class="m-card-value"><span id="valMotherMed">TAKEN</span></div>
             <button class="m-med-toggle-btn" id="btnToggleMotherMed" onclick="toggleMedication()">
               <span id="txtToggleMotherMed" data-i18n="btnMarkTaken">Mark Taken</span>
-            </button>
-            <button class="m-med-toggle-btn" style="margin-top:6px; background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); color: #93c5fd;" onclick="switchView('doctor-advice')">
-              📋 View Doctor Prescriptions & Schedule
             </button>
             <div class="m-card-tip" data-i18n="tipMedRoutine">Daily prenatal vitamins & iron prescribed schedule.</div>
           </div>

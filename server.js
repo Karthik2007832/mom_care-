@@ -137,9 +137,9 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '7953529788';
 let lastServerTelegramTime = 0;
 const TELEGRAM_SERVER_COOLDOWN = 15000;
 
-async function sendTelegramEmergencyAlert(text, bypassCooldown = false) {
+async function sendTelegramEmergencyAlert(text) {
   const now = Date.now();
-  if (!bypassCooldown && (now - lastServerTelegramTime < TELEGRAM_SERVER_COOLDOWN && lastServerTelegramTime !== 0)) return;
+  if (now - lastServerTelegramTime < TELEGRAM_SERVER_COOLDOWN && lastServerTelegramTime !== 0) return;
   lastServerTelegramTime = now;
 
   try {
@@ -151,7 +151,7 @@ async function sendTelegramEmergencyAlert(text, bypassCooldown = false) {
     });
     const result = await resp.json();
     if (result.ok) {
-      console.log('📱 Telegram alert dispatched to chat ID:', TELEGRAM_CHAT_ID);
+      console.log('📱 Telegram emergency alert dispatched to chat ID:', TELEGRAM_CHAT_ID);
     } else {
       console.warn('⚠️ Telegram API response:', result);
     }
@@ -190,74 +190,6 @@ app.post('/api/send-telegram', async (req, res) => {
     `🩺 Please check her immediately and provide required assistance.\n` +
     `— MOMCARE 360 Autonomous Safety Array`);
   await sendTelegramEmergencyAlert(alertText);
-  res.json({ ok: true });
-});
-
-// ── In-Memory Clinical Prescriptions Store ────────────────────────────────
-let activePrescriptions = [
-  {
-    id: 'rx_1',
-    name: 'Ferrous Ascorbate + Folic Acid',
-    dosage: '100mg / 1.5mg (1 Tablet)',
-    times: ['Morning', 'Night'],
-    scheduledTimes: ['08:00', '21:00'],
-    durationDays: 30,
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    prescribedBy: 'Dr. A. Sharma, MD (OB-GYN)',
-    notes: 'Take after meals with warm water or citrus juice to maximize iron absorption and alleviate maternal anemia. Avoid milk or caffeine within 1 hour.',
-    status: 'active',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-  {
-    id: 'rx_2',
-    name: 'Calcium Carbonate + Vitamin D3',
-    dosage: '500mg + 250 IU (1 Tablet)',
-    times: ['Afternoon'],
-    scheduledTimes: ['13:00'],
-    durationDays: 30,
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    prescribedBy: 'Dr. A. Sharma, MD (OB-GYN)',
-    notes: 'Take 2 hours after lunch. Essential for fetal skeletal development and prevention of maternal preeclampsia and bone density loss.',
-    status: 'active',
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  }
-];
-
-app.get('/api/prescriptions', (req, res) => {
-  res.json({ ok: true, prescriptions: activePrescriptions });
-});
-
-app.post('/api/prescriptions', (req, res) => {
-  if (Array.isArray(req.body.prescriptions)) {
-    activePrescriptions = req.body.prescriptions;
-  } else if (req.body.medicine) {
-    const existingIdx = activePrescriptions.findIndex(p => p.id === req.body.medicine.id);
-    if (existingIdx >= 0) {
-      activePrescriptions[existingIdx] = { ...activePrescriptions[existingIdx], ...req.body.medicine, updatedAt: Date.now() };
-    } else {
-      activePrescriptions.unshift({ ...req.body.medicine, id: req.body.medicine.id || ('rx_' + Date.now()), createdAt: Date.now(), status: 'active' });
-    }
-  }
-  res.json({ ok: true, prescriptions: activePrescriptions });
-});
-
-app.post('/api/send-med-reminder', async (req, res) => {
-  const { medicineName, doseTime, notes, durationText, dayProgress, customMessage } = req.body || {};
-  const reminderText = customMessage || (
-    `🔔 *MOMCARE MEDICATION REMINDER* 💊\n\n` +
-    `Dear Mom, it is time for your scheduled medicine!\n\n` +
-    `💊 *Medication:* ${medicineName || 'Prescribed Prenatal Tablet'}\n` +
-    `⏰ *Scheduled Dose:* ${doseTime || 'Current Scheduled Time'}\n` +
-    `🗓️ *Course:* ${durationText || '30 Days (1 Month)'} ${dayProgress ? `(${dayProgress})` : ''}\n` +
-    `👩‍⚕️ *Doctor's Instructions:* ${notes || 'Take as advised with water after food.'}\n\n` +
-    `🩺 Please take your tablet now for your and your baby's optimal health!\n` +
-    `— MomCare 360 Maternal Care`
-  );
-  await sendTelegramEmergencyAlert(reminderText, true);
   res.json({ ok: true });
 });
 
