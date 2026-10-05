@@ -245,13 +245,13 @@ function updateBpm(bpm) {
 }
 
 function updateTemp(temp) {
-  // Display 35°C as requested (fallback to 35 if temp is uncalibrated or disconnected)
-  const displayTemp = (temp && temp >= 30) ? temp : 35;
-  valTemp.textContent = (displayTemp === 35 || displayTemp === 35.0) ? '35' : displayTemp.toFixed(1);
+  // Display real physical temperature (or 35 if not yet received)
+  const displayTemp = (temp && temp > 0) ? temp : 35;
+  valTemp.textContent = displayTemp.toFixed(1);
   flashValue(valTemp);
 
-  // Progress bar (35–40°C range)
-  const pct = Math.min(100, Math.max(25, ((displayTemp - 30) / 12) * 100));
+  // Progress bar (20–45°C range)
+  const pct = Math.min(100, Math.max(10, ((displayTemp - 20) / 25) * 100));
   tempBar.style.width = pct + '%';
 
   const isHigh = displayTemp > 37.5;
@@ -836,7 +836,7 @@ function parseBleLine(line) {
       piezo:      parts['Piezo_Force']    ?? 0,
       kicks:      parts['Kicks_Total']    ?? 0,
       motion:     parts['Motion_Total_G'] ?? 0,
-      temp:       (parts['Temp_C'] && parts['Temp_C'] >= 30) ? parts['Temp_C'] : 35,
+      temp:       (parts['Temp_C'] !== undefined && parts['Temp_C'] > 0) ? parts['Temp_C'] : 35,
       fallAlert:  parts['Fall_Alert'] === 1,
       sosCall:    parts['SOS_Call'] === 1,
       pressCount: parts['Press_Count']    ?? 0,
@@ -1099,7 +1099,7 @@ function updateHistoryTable(data) {
   tr.innerHTML = `
     <td>${time}</td>
     <td>${data.bpm > 0 ? data.bpm.toFixed(0) : '--'}</td>
-    <td>${(data.temp && data.temp >= 30) ? data.temp.toFixed(1) : '35.0'}</td>
+    <td>${(data.temp && data.temp > 0) ? data.temp.toFixed(1) : '35.0'}</td>
     <td>${(data.motion || 0).toFixed(2)}</td>
     <td>${data.kicks || 0}</td>
   `;
@@ -2389,7 +2389,7 @@ window.syncSharedModules = function(data, history) {
   const isLive = isValidSensorReading && (Date.now() - lastSensorPacketTime < SENSOR_STREAM_TIMEOUT);
 
   const bpm = isLive ? rawBpm : 0;
-  const temp = isLive ? (rawTemp >= 30 ? rawTemp : 35.0) : 0;
+  const temp = isLive ? (rawTemp > 0 ? rawTemp : 35.0) : 0;
   const spo2 = isLive ? deriveSpo2(bpm) : 0;
   const bp = isLive ? deriveBp(bpm, motion) : '-- / --';
   const anemia = isLive ? deriveAnemia(bpm) : '--';

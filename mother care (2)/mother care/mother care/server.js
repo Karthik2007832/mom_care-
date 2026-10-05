@@ -112,7 +112,7 @@ function parseLine(line) {
       piezo: parts['Piezo_Force'] ?? 0,
       kicks: parts['Kicks_Total'] ?? 0,
       motion: parts['Motion_Total_G'] ?? 0,
-      temp: (parts['Temp_C'] && parts['Temp_C'] >= 30) ? parts['Temp_C'] : 35.0,
+      temp: (parts['Temp_C'] !== undefined && parts['Temp_C'] > 0) ? parts['Temp_C'] : (latestData.temp > 0 ? latestData.temp : 35.0),
       fallAlert: parts['Fall_Alert'] === 1,
       sosCall: parts['SOS_Call'] === 1,
       pressCount: parts['Press_Count'] ?? 0,

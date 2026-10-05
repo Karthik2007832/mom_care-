@@ -110,12 +110,12 @@ const int KICK_SENSITIVITY = 350;    // Piezo kick sensitivity threshold
 const unsigned long DEBOUNCE = 1200; // Vibration echo debounce window (1.2s)
 
 // Fall Detection Algorithmic Limits
-const float FALL_THRESHOLD     = 2.0;    // Temporary TEST threshold: 2.0G (2.0 * 9.81 = 19.62 m/s²)
+const float FALL_THRESHOLD     = 2.0;    // Acceleration threshold: 2.0G (2.0 * 9.81 = 19.62 m/s²)
 const float AMBIENT_G          = 9.81;   // Earth's base gravity reference
-const int   FALL_CONFIRM_COUNT = 3;      // Must see >2.0G for this many consecutive samples
-const unsigned long FALL_DEBOUNCE_MS = 2000; // Min 2s between successive fall alerts
+const int   FALL_CONFIRM_COUNT = 1;      // Instantaneous detection on first impact spike (1 sample)
+const unsigned long FALL_DEBOUNCE_MS = 1500; // 1.5s debounce between repeated fall alert triggers
 
-int   fallConsecutive  = 0;           // Counter for consecutive high-G samples
+int   fallConsecutive  = 0;
 unsigned long lastFallAlertTime = 0;  // Timestamp of last confirmed fall alert
 
 // Telemetry Streaming Intervals
@@ -133,7 +133,7 @@ bool peakDetected = false;
 float dynamicBaseline = 0.0;
 unsigned long lastKickTime = 0;
 int kickCount = 0;
-float bodyTemperatureC = 35.0;
+float bodyTemperatureC = 0.0; // Initialized to 0.0 (locks onto real sensor value immediately)
 // ── Standalone Self-Contained URL Encoding (No External Dependency) ──────────
 String urlEncode(const String& str) {
   String encoded = "";
@@ -164,7 +164,7 @@ String urlEncode(const String& str) {
   return encoded;
 }
 
-// ── Standalone Direct Telegram Alert (WiFi HTTPS) ───────────────────────────
+// ── Non-Blocking Standalone Direct Telegram Alert (WiFi HTTPS) ──────────────
 void sendTelegramEmergencyAlert(const char* reason = "MPU6050 Fall Detection") {
   unsigned long now = millis();
   if (now - lastTelegramSendTime < TELEGRAM_COOLDOWN_MS && lastTelegramSendTime != 0) {
@@ -180,54 +180,47 @@ void sendTelegramEmergencyAlert(const char* reason = "MPU6050 Fall Detection") {
 
   if (String(WIFI_SSID) == "YOUR_WIFI_NAME") {
     Serial.println("⚠️  Note: Standalone WiFi Telegram is inactive (WIFI_SSID is set to default).");
-    Serial.println("   Please set your WiFi SSID and password in sketch_may5a.ino.");
+    Serial.println("   Please set your WiFi SSID and password in the sketch to enable direct Telegram.");
     lastTelegramSendTime = now;
     return;
   }
 
+  // Non-blocking WiFi check: do NOT use a blocking while loop with delays!
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.print("📡 WiFi connecting to: ");
-    Serial.println(WIFI_SSID);
+    Serial.println("📡 WiFi not connected. Initiating non-blocking background connection...");
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    unsigned long startAttempt = millis();
-    while (WiFi.status() != WL_CONNECTED && (millis() - startAttempt < 6000)) {
-      delay(250);
-      Serial.print(".");
-    }
-    Serial.println();
+    return;
   }
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("🌐 Connected to WiFi! Sending to Telegram API...");
-    WiFiClientSecure client;
-    client.setInsecure(); // Skip certificate validation for embedded microcontrollers
+  Serial.println("🌐 Connected to WiFi! Sending to Telegram API...");
+  WiFiClientSecure client;
+  client.setInsecure(); // Skip certificate validation for embedded microcontrollers
 
-    HTTPClient https;
-    String messageText = "🚨 *MOMCARE 360 EMERGENCY ALERT* 🚨\n\n"
-                         "⚠️ *A possible fall has been detected for the pregnant mother.*\n\n"
-                         "📋 *Trigger:* MPU6050 Fall Detection (Acceleration Test Threshold: 2.0G / 19.62 m/s²)\n"
-                         "ℹ️ *Cause:* " + String(reason) + "\n\n"
-                         "🩺 Please check her immediately and provide required assistance.\n"
-                         "— MOMCARE 360 Autonomous Safety Array";
+  HTTPClient https;
+  https.setTimeout(1500); // 1.5s timeout prevents MCU blocking on network congestion
 
-    String url = "https://api.telegram.org/bot" + String(TELEGRAM_BOT_TOKEN) +
-                 "/sendMessage?chat_id=" + String(TELEGRAM_CHAT_ID) +
-                 "&text=" + urlEncode(messageText) + "&parse_mode=Markdown";
+  String messageText = "🚨 *MOMCARE 360 EMERGENCY ALERT* 🚨\n\n"
+                       "⚠️ *A possible fall has been detected for the pregnant mother.*\n\n"
+                       "📋 *Trigger:* MPU6050 Instant Fall Detection (≥ 2.0G / 19.62 m/s²)\n"
+                       "ℹ️ *Cause:* " + String(reason) + "\n\n"
+                       "🩺 Please check her immediately and provide required assistance.\n"
+                       "— MOMCARE 360 Autonomous Safety Array";
 
-    if (https.begin(client, url)) {
-      int httpCode = https.GET();
-      if (httpCode > 0) {
-        Serial.printf("✅ TELEGRAM ALERT SENT DIRECTLY FROM ESP32! HTTP Code: %d\n", httpCode);
-        lastTelegramSendTime = now;
-      } else {
-        Serial.printf("❌ Telegram Send Failed: %s\n", https.errorToString(httpCode).c_str());
-      }
-      https.end();
+  String url = "https://api.telegram.org/bot" + String(TELEGRAM_BOT_TOKEN) +
+               "/sendMessage?chat_id=" + String(TELEGRAM_CHAT_ID) +
+               "&text=" + urlEncode(messageText) + "&parse_mode=Markdown";
+
+  if (https.begin(client, url)) {
+    int httpCode = https.GET();
+    if (httpCode > 0) {
+      Serial.printf("✅ TELEGRAM ALERT SENT DIRECTLY FROM ESP32! HTTP Code: %d\n", httpCode);
+      lastTelegramSendTime = now;
     } else {
-      Serial.println("❌ Failed to initiate HTTPS connection to api.telegram.org");
+      Serial.printf("❌ Telegram Send Failed: %s\n", https.errorToString(httpCode).c_str());
     }
+    https.end();
   } else {
-    Serial.println("❌ Telegram Send Failed: WiFi not connected.");
+    Serial.println("❌ Failed to initiate HTTPS connection to api.telegram.org");
   }
 }
 
@@ -298,11 +291,18 @@ void setup() {
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
 
+  // Non-blocking background WiFi connection if SSID configured
+  if (String(WIFI_SSID) != "YOUR_WIFI_NAME") {
+    Serial.printf("📡 Starting background WiFi connection to: %s\n", WIFI_SSID);
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  }
+
   // Piezo Baseline
   long piezoSum = 0;
   for (int i = 0; i < 50; i++) {
     piezoSum += analogRead(PIEZO_PIN);
-    delay(10);
+    delay(5);
   }
   dynamicBaseline = piezoSum / 50.0;
 
@@ -319,9 +319,10 @@ void loop() {
   unsigned long now = millis();
 
   // --------------------------------------------------------------------------
-  // LAYER 1: MPU6050 ACCELEROMETER FALL DETECTION
+  // LAYER 1: MPU6050 ACCELEROMETER FALL DETECTION (INSTANTANEOUS DISPATCH)
   // --------------------------------------------------------------------------
   float totalAcceleration = 0.0;
+  float motionG = 1.0;
 
   if (mpuOK) {
     sensors_event_t a, g, temp_event;
@@ -330,20 +331,42 @@ void loop() {
     totalAcceleration = sqrt(pow(a.acceleration.x, 2) +
                              pow(a.acceleration.y, 2) +
                              pow(a.acceleration.z, 2));
+    motionG = totalAcceleration / AMBIENT_G;
 
+    // Instantaneous impact spike detection: 0ms delay trigger
     if (totalAcceleration > (FALL_THRESHOLD * AMBIENT_G)) {
-      fallConsecutive++;
-      if (fallConsecutive >= FALL_CONFIRM_COUNT) {
-        if ((now - lastFallAlertTime) > FALL_DEBOUNCE_MS) {
-          fallDetected = true;
-          lastFallAlertTime = now;
-          Serial.println("FALL CONFIRMED (MPU6050 test threshold > 2.0G / 19.62 m/s²)");
-          sendTelegramEmergencyAlert("MPU6050 Fall Detection (Acceleration > 2.0G / 19.62 m/s²)");
+      if ((now - lastFallAlertTime) > FALL_DEBOUNCE_MS) {
+        fallDetected = true;
+        lastFallAlertTime = now;
+
+        // INSTANTANEOUS 0-MS OUT-OF-BAND TELEMETRY PACKET
+        // Immediately streams alert over USB Serial and BLE notification BEFORE any network calls
+        char instantCsv[260];
+        snprintf(instantCsv, sizeof(instantCsv),
+          "ECG:%d,Maternal_BPM:%.1f,Piezo_Force:%.1f,Kicks_Total:%d,"
+          "Motion_Total_G:%.3f,Temp_C:%.2f,MPU_OK:%d,Fall_Alert:1,SOS_Call:%d,Press_Count:%d",
+          analogRead(ECG_OUTPUT_PIN),
+          ecgHeartRateBPM,
+          abs(analogRead(PIEZO_PIN) - dynamicBaseline),
+          kickCount,
+          motionG,
+          bodyTemperatureC,
+          mpuOK ? 1 : 0,
+          sosCallTriggered ? 1 : 0,
+          buttonPressCount
+        );
+
+        Serial.println(instantCsv);
+        if (deviceConnected) {
+          char payload[270];
+          snprintf(payload, sizeof(payload), "%s\n", instantCsv);
+          pTxCharacteristic->setValue((uint8_t*)payload, strlen(payload));
+          pTxCharacteristic->notify();
         }
-        fallConsecutive = 0;
+
+        Serial.printf("🚨 [INSTANT ALERT] FALL DETECTED! Motion: %.2fG > 2.0G\n", motionG);
+        sendTelegramEmergencyAlert("MPU6050 Fall Detection (Acceleration > 2.0G / 19.62 m/s²)");
       }
-    } else {
-      fallConsecutive = 0;
     }
   }
 
@@ -391,39 +414,43 @@ void loop() {
   }
 
   // --------------------------------------------------------------------------
-  // LAYER 4: PERIODIC CORE TEMPERATURE AVERAGING (EMA smoothing)
+  // LAYER 4: PHYSICAL CORE TEMPERATURE SAMPLING (Fast non-blocking with EMA)
   // --------------------------------------------------------------------------
   if (now - lastTelemetryStream >= STREAM_INTERVAL) {
     lastTelemetryStream = now;
 
+    // Fast 16-sample burst without delay (takes ~0.2ms total, ZERO blocking)
     long totalRawTemp = 0;
-    int validSamples = 0;
-    for (int i = 0; i < 200; i++) {
-      int raw = analogRead(TEMP_INPUT_PIN);
-      if (raw > 300 && raw < 700) {
-        totalRawTemp += raw;
-        validSamples++;
+    for (int i = 0; i < 16; i++) {
+      totalRawTemp += analogRead(TEMP_INPUT_PIN);
+    }
+    float avgRaw = (float)totalRawTemp / 16.0;
+
+    // LM35D: 10mV/°C on ESP32 12-bit ADC (3300mV reference with 11dB attenuation)
+    float lm35MilliVolts = (avgRaw / 4095.0) * 3300.0;
+    float measuredTempC  = lm35MilliVolts / 10.0;
+
+    // Accept real physical temperature from LM35 if pin produces valid signal (>30 raw = >2.4°C)
+    bool hasValidTemp = (avgRaw > 30.0 && measuredTempC >= 15.0 && measuredTempC <= 60.0);
+
+    // If LM35 is unplugged or reading 0, seamlessly read MPU6050 onboard silicon hardware temperature
+    if (!hasValidTemp && mpuOK) {
+      sensors_event_t aDummy, gDummy, tempEvent;
+      mpu.getEvent(&aDummy, &gDummy, &tempEvent);
+      if (tempEvent.temperature >= 10.0 && tempEvent.temperature <= 60.0) {
+        measuredTempC = tempEvent.temperature;
+        hasValidTemp = true;
       }
-      delay(1);
     }
 
-    if (validSamples > 10) {
-      float avgRawTemp = (float)totalRawTemp / validSamples;
-      float milliVolts = (avgRawTemp / 4095.0) * 3300.0;
-      float newTempC   = (milliVolts / 10.0) - 1.0;
-
-      if (newTempC >= 30.0 && newTempC <= 45.0) {
-        if (bodyTemperatureC < 30.0) {
-          bodyTemperatureC = newTempC;
-        } else {
-          bodyTemperatureC = (bodyTemperatureC * 0.70) + (newTempC * 0.30);
-        }
-      }
-    } else {
-      if (bodyTemperatureC < 30.0) {
-        bodyTemperatureC = 35.0;
+    if (hasValidTemp) {
+      if (bodyTemperatureC <= 0.1) {
+        bodyTemperatureC = measuredTempC; // Instant first lock
+      } else {
+        bodyTemperatureC = (bodyTemperatureC * 0.80) + (measuredTempC * 0.20); // Smooth EMA
       }
     }
+    // Real sensor temperature is preserved — never forced back to simulated 35.0!
   }
 
   // --------------------------------------------------------------------------
@@ -458,8 +485,25 @@ void loop() {
         Serial.print("📞 INITIATING EMERGENCY CALL TO: ");
         Serial.println(EMERGENCY_PHONE_NUMBER);
         Serial.println("🚨 =========================================================\n");
-        sendTelegramEmergencyAlert("Push Button SOS Triggered (3 Clicks)");
 
+        // Immediately broadcast SOS telemetry packet
+        char instantSosCsv[260];
+        snprintf(instantSosCsv, sizeof(instantSosCsv),
+          "ECG:%d,Maternal_BPM:%.1f,Piezo_Force:%.1f,Kicks_Total:%d,"
+          "Motion_Total_G:%.3f,Temp_C:%.2f,MPU_OK:%d,Fall_Alert:%d,SOS_Call:1,Press_Count:%d",
+          ecgValue, ecgHeartRateBPM, impactMagnitude, kickCount,
+          motionG, bodyTemperatureC,
+          mpuOK ? 1 : 0, fallDetected ? 1 : 0, buttonPressCount
+        );
+        Serial.println(instantSosCsv);
+        if (deviceConnected) {
+          char payload[270];
+          snprintf(payload, sizeof(payload), "%s\n", instantSosCsv);
+          pTxCharacteristic->setValue((uint8_t*)payload, strlen(payload));
+          pTxCharacteristic->notify();
+        }
+
+        sendTelegramEmergencyAlert("Push Button SOS Triggered (3 Clicks)");
         buttonPressCount = 0;
       }
     }
@@ -475,32 +519,32 @@ void loop() {
   sosCallTriggered = (now < sosActiveUntil);
 
   // --------------------------------------------------------------------------
-  // LAYER 5: BUILD & TRANSMIT CSV TELEMETRY (Only When Bluetooth Connected)
+  // LAYER 5: BUILD & TRANSMIT CSV TELEMETRY (Continuous Serial & BLE Stream)
   // --------------------------------------------------------------------------
   if (now - lastCsvStreamTime >= CSV_STREAM_INTERVAL) {
     lastCsvStreamTime = now;
 
-    // Send sensor values ONLY when Bluetooth device is connected
+    char csvLine[260];
+    snprintf(csvLine, sizeof(csvLine),
+      "ECG:%d,Maternal_BPM:%.1f,Piezo_Force:%.1f,Kicks_Total:%d,"
+      "Motion_Total_G:%.3f,Temp_C:%.2f,MPU_OK:%d,Fall_Alert:%d,SOS_Call:%d,Press_Count:%d",
+      ecgValue,
+      ecgHeartRateBPM,
+      impactMagnitude,
+      kickCount,
+      motionG,
+      bodyTemperatureC,
+      mpuOK ? 1 : 0,
+      fallDetected ? 1 : 0,
+      sosCallTriggered ? 1 : 0,
+      buttonPressCount
+    );
+
+    // Stream continuously over Serial for USB Serial Monitor & Web Serial
+    Serial.println(csvLine);
+
+    // Transmit over BLE Notification when connected
     if (deviceConnected) {
-      char csvLine[260];
-      snprintf(csvLine, sizeof(csvLine),
-        "ECG:%d,Maternal_BPM:%.1f,Piezo_Force:%.1f,Kicks_Total:%d,"
-        "Motion_Total_G:%.3f,Temp_C:%.2f,MPU_OK:%d,Fall_Alert:%d,SOS_Call:%d,Press_Count:%d",
-        ecgValue,
-        ecgHeartRateBPM,
-        impactMagnitude,
-        kickCount,
-        totalAcceleration / AMBIENT_G,
-        bodyTemperatureC,
-        mpuOK ? 1 : 0,
-        fallDetected ? 1 : 0,
-        sosCallTriggered ? 1 : 0,
-        buttonPressCount
-      );
-
-      Serial.println(csvLine);
-
-      // Transmit over BLE Notification
       char payload[270];
       snprintf(payload, sizeof(payload), "%s\n", csvLine);
       pTxCharacteristic->setValue((uint8_t*)payload, strlen(payload));
@@ -521,5 +565,6 @@ void loop() {
     Serial.println("BLE Client Connected successfully!");
   }
 
-  delay(5); // Ultra-fast 5ms polling loop
+  delay(2); // Ultra-fast 2ms polling loop for maximum MPU6050 responsiveness
 }
+
