@@ -3,6 +3,34 @@
 //   BLE Edition — Streams data over Bluetooth Low Energy (UART Service)
 //   Connect via a BLE Terminal app using the UART Service UUIDs.
 // ============================================================================
+//
+//   HARDWARE WIRING CONNECTIONS (ESP32-C3 / ESP32 Standard):
+//   --------------------------------------------------------------------------
+//   1. MPU-6050 Accelerometer & Gyroscope (Fall & Impact Detection):
+//        • VCC  → ESP32 3.3V
+//        • GND  → ESP32 GND
+//        • SCL  → ESP32 GPIO 21  (I2C Clock)
+//        • SDA  → ESP32 GPIO 20  (I2C Data)
+//
+//   2. AD8232 ECG Sensor (Maternal Heart Rate & ECG Waveform):
+//        • 3.3V → ESP32 3.3V
+//        • GND  → ESP32 GND
+//        • OUT  → ESP32 GPIO 2   (ADC Channel)
+//
+//   3. Piezoelectric Vibration Sensor (Fetal Kick Counter):
+//        • Positive (+) → ESP32 GPIO 1 (ADC Channel)
+//        • Negative (-) → ESP32 GND
+//
+//   4. LM35D Temperature Sensor (Core Body Temperature):
+//        • VCC  → ESP32 3.3V / 5V
+//        • GND  → ESP32 GND
+//        • VOUT → ESP32 GPIO 0   (ADC Channel)
+//
+//   5. Emergency SOS Push Button:
+//        • Terminal 1 → ESP32 GPIO 8 (Active-LOW, Internal Pull-up)
+//        • Terminal 2 → ESP32 GND
+//        (Onboard BOOT Button on GPIO 9 serves as secondary backup)
+// ============================================================================
 #include <Wire.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
@@ -42,6 +70,11 @@ bool mpuOK = false;              // Tracks whether MPU6050 successfully initiali
 bool fallDetected = false;       // Sticky fall flag cleared after reporting
 
 // Hardware Pin Definitions
+// ── MPU6050 6-Axis Motion Array (I2C) ──
+const int MPU_SDA_PIN      = 20; // MPU6050 SDA (Data)  → ESP32 GPIO 20
+const int MPU_SCL_PIN      = 21; // MPU6050 SCL (Clock) → ESP32 GPIO 21
+
+// ── Physical & Biometric Sensors ──
 const int PUSH_BUTTON_PIN  = 8;  // External Push Button → GPIO 8 (Active-LOW with Internal Pull-up)
 const int ONBOARD_BOOT_PIN = 9;  // Onboard BOOT Button → GPIO 9 (Universal ESP32-C3 Fallback)
 const int ECG_OUTPUT_PIN   = 2;  // AD8232 Analog Out → GPIO 2
@@ -244,20 +277,21 @@ void setup() {
   analogSetAttenuation(ADC_11db);
 
   // I2C on GPIO20 (SDA) and GPIO21 (SCL)
-  Wire.begin(20, 21);
+  Wire.begin(MPU_SDA_PIN, MPU_SCL_PIN);
 
   Serial.println("\nInitializing MPU6050 Accelerometer Array...");
+  Serial.printf("Connecting I2C Wire on SDA=GPIO%d, SCL=GPIO%d\n", MPU_SDA_PIN, MPU_SCL_PIN);
   if (!mpu.begin(0x68, &Wire)) {
     if (!mpu.begin(0x69, &Wire)) {
-      Serial.println("MPU6050_ERROR: Not found at 0x68 or 0x69 on SDA=20/SCL=21. Check wiring.");
+      Serial.printf("MPU6050_ERROR: Not found at 0x68 or 0x69 on SDA=%d/SCL=%d. Check wiring.\n", MPU_SDA_PIN, MPU_SCL_PIN);
       mpuOK = false;
     } else {
       mpuOK = true;
-      Serial.println("MPU6050_OK: Found at address 0x69 on SDA=20/SCL=21");
+      Serial.printf("MPU6050_OK: Found at address 0x69 on SDA=%d/SCL=%d\n", MPU_SDA_PIN, MPU_SCL_PIN);
     }
   } else {
     mpuOK = true;
-    Serial.println("MPU6050_OK: Found at address 0x68 on SDA=20/SCL=21");
+    Serial.printf("MPU6050_OK: Found at address 0x68 on SDA=%d/SCL=%d\n", MPU_SDA_PIN, MPU_SCL_PIN);
   }
 
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
