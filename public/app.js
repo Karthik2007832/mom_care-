@@ -3035,27 +3035,6 @@ window.stopSpeechSynthesis = function() {
   }
 };
 
-// ── Chat Dispatch Logic ───────────────────────────────────────────────────
-async function dispatchChatMessage(userText, historyContainerId, inputElementId) {
-  const hist = document.getElementById(historyContainerId);
-  const inp = document.getElementById(inputElementId);
-  if (!userText || !hist) return;
-
-  if (inp) inp.value = '';
-
-  // Append user bubble
-  const userDiv = document.createElement('div');
-  userDiv.className = 'chat-msg user';
-  userDiv.textContent = userText;
-  hist.appendChild(userDiv);
-
-  // Append thinking bubble
-  const typingDiv = document.createElement('div');
-  typingDiv.className = 'chat-msg ai typing';
-  typingDiv.textContent = 'Thinking in ' + (langDisplayNames[currentLanguage] || 'English') + '...';
-  hist.appendChild(typingDiv);
-  hist.scrollTop = hist.scrollHeight;
-
 // ── Client-Side Edge AI Maternal Assistant Fallback ────────────────────────
 function generateClientMaternalAiResponse(message, vitals, language) {
   const text = (message || '').toLowerCase();
@@ -3145,6 +3124,29 @@ function generateClientMaternalAiResponse(message, vitals, language) {
   }
   return 'Hello! I am MomCare Clinical AI. I continuously observe your maternal vitals and fetal well-being. Feel free to ask about your heart rate, kicks, blood pressure, body temperature, or pregnancy wellness guidance.';
 }
+
+// ── Chat Dispatch Logic ───────────────────────────────────────────────────
+async function dispatchChatMessage(userText, historyContainerId, inputElementId) {
+  const hist = document.getElementById(historyContainerId);
+  const inp = document.getElementById(inputElementId);
+  if (!userText || !hist) return;
+
+  if (inp) inp.value = '';
+
+  // Append user bubble
+  const userDiv = document.createElement('div');
+  userDiv.className = 'chat-msg user';
+  userDiv.textContent = userText;
+  hist.appendChild(userDiv);
+
+  // Append thinking bubble
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'chat-msg ai typing';
+  typingDiv.textContent = 'Thinking in ' + (langDisplayNames[currentLanguage] || 'English') + '...';
+  hist.appendChild(typingDiv);
+  hist.scrollTop = hist.scrollHeight;
+
+  try {
 
   const chatPayload = JSON.stringify({
     message: userText,
