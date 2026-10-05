@@ -238,9 +238,9 @@ function updateBpm(bpm) {
     ecgBpmDisplay.textContent = '0 BPM';
   }
 
-  // High BPM Alert
+  // BP / BPM Alert
   if (bpm > 140) {
-    addAlert(`CRITICAL: High BPM detected (${bpm.toFixed(0)})`, 'critical');
+    addAlert(`CRITICAL: High BPM / BP detected (${bpm.toFixed(0)})`, 'critical');
   }
 }
 
@@ -2508,9 +2508,9 @@ window.syncSharedModules = function(data, history) {
   if (valMBp && statusMBp) {
     if (isLive && bp !== '-- / --') {
       valMBp.textContent = bp;
-      statusMBp.className = 'm-card-status-pill normal';
-      statusMBp.textContent = 'NORMAL';
-      if (tipMBp) tipMBp.textContent = dict.tipBpNormal;
+      statusMBp.className = isHighBp ? 'm-card-status-pill high' : 'm-card-status-pill normal';
+      statusMBp.textContent = isHighBp ? 'HIGH' : 'NORMAL';
+      if (tipMBp) tipMBp.textContent = isHighBp ? 'Elevated blood pressure (>130 mmHg).' : dict.tipBpNormal;
     } else {
       valMBp.textContent = '-- / --';
       statusMBp.className = 'm-card-status-pill waiting';
@@ -2589,7 +2589,7 @@ window.syncSharedModules = function(data, history) {
       mOverallPill.className = 'overall-status-pill emergency';
       mOverallText.textContent = dict.statusEmergency;
       mOverallDesc.textContent = "Possible fall detected. Emergency notifications dispatched. Please seek immediate assistance.";
-    } else if (isHighBpm || isHighTemp) {
+    } else if (isHighBpm || isHighTemp || isHighBp) {
       mOverallPill.className = 'overall-status-pill attention';
       mOverallText.textContent = 'HIGH';
       mOverallDesc.textContent = "Elevated vital detected. Please rest comfortably and drink fresh water.";
@@ -2648,8 +2648,8 @@ window.syncSharedModules = function(data, history) {
   if (relBp && relStatBp) {
     if (isLive && bp !== '-- / --') {
       relBp.textContent = bp + ' mmHg';
-      relStatBp.textContent = 'NORMAL';
-      relStatBp.className = 'rel-status-badge normal';
+      relStatBp.textContent = isHighBp ? 'HIGH' : 'NORMAL';
+      relStatBp.className = isHighBp ? 'rel-status-badge high' : 'rel-status-badge normal';
     } else {
       relBp.textContent = '-- / -- mmHg';
       relStatBp.textContent = dict.noCurrentReading;
