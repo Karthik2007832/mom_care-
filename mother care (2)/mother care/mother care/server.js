@@ -420,7 +420,7 @@ Write your entire response fluently in ${targetLang}. Keep answers concise, medi
       ? `Current body temperature is ${temp}°C (${Number(temp) <= 37.5 ? 'Normothermic / Normal' : 'Fever alert'}). Stay hydrated.`
       : 'Waiting for LM35D body temperature sensor readings.';
   } else if (text.includes('emergency') || text.includes('hospital') || text.includes('help')) {
-    fallbackReply = 'For acute medical assistance, contact National Emergency Services (108). In Coimbatore, nearby facilities include KMCH Sulur, NG Hospital, and Pappampatti PHC.';
+    fallbackReply = 'For acute medical assistance, contact National Emergency Services (108). In Coimbatore near Sri Shakthi College, nearby facilities include KMCH (Avinashi Rd), NG Hospital, and Chinniyampalayam PHC.';
   } else {
     fallbackReply = isLive
       ? `Maternal Vitals Summary: Heart Rate: ${bpm || '--'} BPM, SpO2: ${spo2 || '--'}%, Temp: ${temp || '--'}°C, BP: ${bp || '--'} mmHg, Kicks: ${kicks ?? 0}. ${isFall ? 'Alert: Fall vector detected!' : 'All parameters stable.'}`

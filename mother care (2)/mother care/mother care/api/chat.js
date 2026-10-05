@@ -85,9 +85,9 @@ function generateClinicalFallback(message, vitals, language) {
   // 5. Emergency / Hospital / Help
   if (text.includes('emergency') || text.includes('help') || text.includes('hospital') || text.includes('doctor') || text.includes('sos') || text.includes('ஆபத்து') || text.includes('மருத்துவமனை') || text.includes('अस्पताल')) {
     if (lang === 'ta') {
-      return 'அவசர நிலைக்கு உடனடியாக 108 ஐ அழைக்கவும் அல்லது அருகில் உள்ள கே.எம்.சி.எச் சூலூர் / பாப்பம்பட்டி பி.எச்.சி மருத்துவமனையை தொடர்பு கொள்ளவும். டாஷ்போர்டில் உள்ள அவசர SOS பட்டனையும் பயன்படுத்தலாம்.';
+      return 'அவசர நிலைக்கு உடனடியாக 108 ஐ அழைக்கவும் அல்லது ஸ்ரீ சக்தி கல்லூரி அருகில் உள்ள கே.எம்.சி.எச் (அவிநாசி ரோடு) / சின்னியம்பாளையம் பி.எச்.சி மருத்துவமனையை தொடர்பு கொள்ளவும். டாஷ்போர்டில் உள்ள அவசர SOS பட்டனையும் பயன்படுத்தலாம்.';
     }
-    return 'For acute medical emergencies, immediately contact National Emergency Services (108). In Coimbatore, nearby centers include KMCH Sulur, NG Hospital, and Pappampatti PHC. You can also trigger the Emergency SOS button on your dashboard.';
+    return 'For acute medical emergencies, immediately contact National Emergency Services (108). In Coimbatore near Sri Shakthi College, nearby centers include KMCH (Avinashi Rd), NG Hospital, and Chinniyampalayam PHC. You can also trigger the Emergency SOS button on your dashboard.';
   }
 
   // Default Greeting / Maternal Care Advice

@@ -3106,9 +3106,9 @@ function generateClientMaternalAiResponse(message, vitals, language) {
   // 5. Emergency / Hospital
   if (text.includes('emergency') || text.includes('hospital') || text.includes('doctor') || text.includes('sos') || text.includes('help') || text.includes('ஆபத்து') || text.includes('மருத்துவர்') || text.includes('மருத்துவமனை') || text.includes('इमरजेंसी') || text.includes('अस्पताल')) {
     if (lang === 'ta') {
-      return 'அவசர உதவிக்கு 108 ஐ அழைக்கவும். அருகில் உள்ள மருத்துவமனைகள்: கே.எம்.சி.எச் சூலூர், என்.ஜி மருத்துவமனை, பாப்பம்பட்டி பி.எச்.சி (கோயம்புத்தூர்). டாஷ்போர்டில் உள்ள அவசர SOS பட்டனையும் பயன்படுத்தலாம்.';
+      return 'அவசர உதவிக்கு 108 ஐ அழைக்கவும். ஸ்ரீ சக்தி கல்லூரி அருகில் உள்ள மருத்துவமனைகள்: கே.எம்.சி.எச் (அவிநாசி ரோடு), சின்னியம்பாளையம் பி.எச்.சி, என்.ஜி மருத்துவமனை (கோயம்புத்தூர்). டாஷ்போர்டில் உள்ள அவசர SOS பட்டனையும் பயன்படுத்தலாம்.';
     }
-    return 'For urgent medical assistance, please contact National Emergency Services (108). In the local prototype zone, nearby centers include KMCH Sulur, NG Hospital, and Pappampatti PHC. You can also trigger the Emergency SOS button on your screen.';
+    return 'For urgent medical assistance, please contact National Emergency Services (108). Near Sri Shakthi College of Engineering and Technology, nearby centers include KMCH (Avinashi Rd), Chinniyampalayam PHC, and NG Hospital. You can also trigger the Emergency SOS button on your screen.';
   }
 
   // Default Guidance
@@ -3215,9 +3215,9 @@ window.initNearbyHospitalsMap = function() {
     return;
   }
 
-  // Prototype Location: KIT College / Pappampatti Pirivu, Coimbatore (10.9934, 77.0864)
-  const kitCoords = [10.9934, 77.0864];
-  leafletMap = L.map('hospitalsMap').setView(kitCoords, 13);
+  // Prototype Location: Sri Shakthi College of Engineering and Technology, Coimbatore (11.0402, 77.0744)
+  const collegeCoords = [11.0402, 77.0744];
+  leafletMap = L.map('hospitalsMap').setView(collegeCoords, 13);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -3225,13 +3225,13 @@ window.initNearbyHospitalsMap = function() {
   }).addTo(leafletMap);
 
   // Custom marker for Patient / Mother Location
-  const patientMarker = L.circleMarker(kitCoords, {
+  const patientMarker = L.circleMarker(collegeCoords, {
     color: '#E11D48',
     fillColor: '#FF2D55',
     fillOpacity: 0.9,
     radius: 9
   }).addTo(leafletMap);
-  patientMarker.bindPopup(`<b>📍 Mother's Location (Demo Prototype)</b><br>KIT College / Pappampatti Pirivu, Coimbatore`).openPopup();
+  patientMarker.bindPopup(`<b>📍 Mother's Location (Demo Prototype)</b><br>Sri Shakthi College of Engineering and Technology, Coimbatore`).openPopup();
 
   // Nearby Hospitals Markers
   const hospitals = [
