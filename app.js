@@ -1690,7 +1690,19 @@ window.sendAiMessage = async function() {
 function addChatMessage(text, classList) {
   const div = document.createElement('div');
   div.className = 'chat-msg ' + classList;
-  div.textContent = text;
+
+  const isAiMsg = classList.includes('ai') && !classList.includes('typing');
+  if (isAiMsg) {
+    // Strip emojis as a safety net
+    const clean = (text || '').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27FF}\u{2300}-\u{23FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}]/gu, '').trim();
+    // Convert **bold** to <strong>
+    const withBold = clean.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Convert line breaks to <br>
+    div.innerHTML = withBold.replace(/\n/g, '<br>');
+  } else {
+    div.textContent = text;
+  }
+
   aiChatHistory.appendChild(div);
   aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
   return div;

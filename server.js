@@ -22,6 +22,9 @@ try { Groq = require('groq-sdk'); } catch (e) { Groq = null; }
 
 let groq = null; // Lazy-initialized when first /api/chat request arrives
 
+// Groq API Key — set via .env file (GROQ_API_KEY=...) or environment variable
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
@@ -343,25 +346,32 @@ app.post('/api/chat', async (req, res) => {
   };
   const targetLang = langNames[language] || 'English';
 
-  // 1. If GROQ_API_KEY is available, try cloud AI first
-  if (process.env.GROQ_API_KEY) {
+  // 1. Try Groq cloud AI
+  if (Groq && GROQ_API_KEY) {
     try {
-      groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      if (!groq) groq = new Groq({ apiKey: GROQ_API_KEY });
       const hasLiveReading = vitals && (vitals.hasValidData || vitals.bpm > 0);
 
       let vitalsContext = hasLiveReading
         ? `CURRENT LIVE SENSOR TELEMETRY (Hardware Stream Active):
 - Maternal Heart Rate: ${vitals.bpm} BPM
 - Blood Oxygen (SpO2): ${vitals.spo2}%
-- Body Temperature: ${vitals.temp} °C
+- Body Temperature: ${vitals.temp} degrees C
 - Blood Pressure: ${vitals.bp} mmHg
 - Fetal Kicks: ${vitals.kicks ?? 0} kicks
-- Fall Detection Alert: ${vitals.fallAlert ? 'YES — POSSIBLE FALL DETECTED' : 'No Fall Detected (Normal)'}`
+- Fall Detection Alert: ${vitals.fallAlert ? 'YES - POSSIBLE FALL DETECTED' : 'No Fall Detected (Normal)'}`
         : `HARDWARE SENSOR STATUS: WAITING FOR SENSOR DATA (No live packets yet). Advise user to check ESP32 sensor connection.`;
 
       const systemPrompt = `You are MomCare Clinical AI, an expert, compassionate obstetric maternal health medical assistant integrated into the MOMCARE 360 real-time IoT surveillance system.
 ${vitalsContext}
-Write your entire response fluently in ${targetLang}. Keep answers concise, medically accurate, reassuring, and practical.`;
+
+STRICT FORMATTING RULES:
+- Do NOT use any emojis, emoticons, or Unicode symbols in your response.
+- Do NOT use markdown headers (##, ###, etc.).
+- Use plain numbered lists or bullet points (using - or *) for structured information.
+- Write in clear, professional, clinical prose.
+- Keep answers concise, medically accurate, reassuring, and practical.
+- Write your entire response fluently in ${targetLang}.`;
 
       let completion;
       try {
@@ -375,6 +385,7 @@ Write your entire response fluently in ${targetLang}. Keep answers concise, medi
           temperature: 0.6,
         });
       } catch (modelErr) {
+        console.warn('Primary Groq model failed, trying fallback:', modelErr.message);
         completion = await groq.chat.completions.create({
           model: 'openai/gpt-oss-20b',
           messages: [
