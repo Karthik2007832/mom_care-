@@ -347,9 +347,10 @@ app.post('/api/chat', async (req, res) => {
   const targetLang = langNames[language] || 'English';
 
   // 1. Try Groq cloud AI
-  if (Groq && GROQ_API_KEY) {
+  const activeGroqKey = process.env.GROQ_API_KEY || GROQ_API_KEY;
+  if (Groq && activeGroqKey) {
     try {
-      if (!groq) groq = new Groq({ apiKey: GROQ_API_KEY });
+      if (!groq) groq = new Groq({ apiKey: activeGroqKey });
       const hasLiveReading = vitals && (vitals.hasValidData || vitals.bpm > 0);
 
       let vitalsContext = hasLiveReading

@@ -1,4 +1,5 @@
 // api/chat.js - Vercel Serverless Function for MomCare 360 Maternal AI Chat
+try { require('dotenv').config(); } catch (e) {}
 let Groq;
 try {
   Groq = require('groq-sdk');
@@ -121,10 +122,12 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'No message provided.' });
   }
 
+  const groqApiKey = process.env.GROQ_API_KEY;
+
   // Attempt Groq Cloud AI if configured
-  if (process.env.GROQ_API_KEY && Groq) {
+  if (groqApiKey && Groq) {
     try {
-      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const groq = new Groq({ apiKey: groqApiKey });
       const langNames = {
         'en': 'English',
         'ta': 'Tamil (தமிழ்)',
