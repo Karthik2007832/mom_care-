@@ -1657,34 +1657,42 @@ window.sendAiMessage = async function() {
   const typingEl = addChatMessage('Thinking...', 'ai typing');
   isChatLoading = true;
 
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: text,
-        vitals: window.currentVitals || null,
-        language: (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en')
-      }),
-    });
+  const chatPayload = JSON.stringify({
+    message: text,
+    vitals: window.currentVitals || null,
+    language: (typeof currentLanguage !== 'undefined' ? currentLanguage : 'en')
+  });
 
-    let reply = null;
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.reply) reply = data.reply;
+  // Try local server first (works when running node server.js locally),
+  // then fall back to the Vercel serverless function endpoint
+  const apiUrls = ['/api/chat', 'https://mom-care.vercel.app/api/chat'];
+
+  let reply = null;
+  for (const url of apiUrls) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: chatPayload,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.reply && !data.reply.includes('not configured') && !data.reply.includes('Could not')) {
+          reply = data.reply;
+          break;
+        }
+      }
+    } catch (e) {
+      // Try next URL
     }
-    if (!reply || reply.includes('not configured') || reply.includes('Could not')) {
-      reply = generateClientMaternalAiResponse(text, window.currentVitals, typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
-    }
-    typingEl.remove();
-    addChatMessage(reply, 'ai');
-  } catch (err) {
-    typingEl.remove();
-    const reply = generateClientMaternalAiResponse(text, window.currentVitals, typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
-    addChatMessage(reply, 'ai');
-  } finally {
-    isChatLoading = false;
   }
+
+  if (!reply) {
+    reply = generateClientMaternalAiResponse(text, window.currentVitals, typeof currentLanguage !== 'undefined' ? currentLanguage : 'en');
+  }
+  typingEl.remove();
+  addChatMessage(reply, 'ai');
+  isChatLoading = false;
 };
 
 function addChatMessage(text, classList) {
@@ -3133,27 +3141,38 @@ function generateClientMaternalAiResponse(message, vitals, language) {
   return 'Hello! I am MomCare Clinical AI. I continuously observe your maternal vitals and fetal well-being. Feel free to ask about your heart rate, kicks, blood pressure, body temperature, or pregnancy wellness guidance.';
 }
 
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: userText,
-        vitals: window.currentVitals,
-        language: currentLanguage
-      })
-    });
+  const chatPayload = JSON.stringify({
+    message: userText,
+    vitals: window.currentVitals,
+    language: currentLanguage
+  });
 
-    let replyText = null;
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.reply) replyText = data.reply;
-    }
+  const apiUrls = ['/api/chat', 'https://mom-care.vercel.app/api/chat'];
+  let replyText = null;
 
-    if (!replyText || replyText.includes('Could not contact') || replyText.includes('not configured')) {
-      replyText = generateClientMaternalAiResponse(userText, window.currentVitals, currentLanguage);
+  for (const url of apiUrls) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: chatPayload
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.reply && !data.reply.includes('Could not contact') && !data.reply.includes('not configured')) {
+          replyText = data.reply;
+          break;
+        }
+      }
+    } catch (e) {
+      // Try next URL
     }
-    typingDiv.remove();
+  }
+
+  if (!replyText) {
+    replyText = generateClientMaternalAiResponse(userText, window.currentVitals, currentLanguage);
+  }
+  typingDiv.remove();
 
     const aiDiv = document.createElement('div');
     aiDiv.className = 'chat-msg ai';
