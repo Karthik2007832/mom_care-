@@ -282,6 +282,23 @@ body.light-theme .ble-banner-desc { color: #475569; }
   line-height: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+.theme-toggle-icon svg {
+  display: block;
+}
+.theme-icon-moon {
+  color: #38bdf8;
+}
+.theme-icon-sun {
+  color: #64748b;
+}
+body.light-theme .theme-icon-moon {
+  color: #94a3b8;
+}
+body.light-theme .theme-icon-sun {
+  color: #f59e0b;
 }
 .theme-switch {
   position: relative;

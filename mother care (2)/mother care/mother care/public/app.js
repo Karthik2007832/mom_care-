@@ -3233,13 +3233,14 @@ window.initNearbyHospitalsMap = function() {
   }).addTo(leafletMap);
   patientMarker.bindPopup(`<b>📍 Mother's Location (Demo Prototype)</b><br>Sri Shakthi College of Engineering and Technology, Coimbatore`).openPopup();
 
-  // Nearby Hospitals Markers
+  // Nearby Hospitals Markers (Calibrated from Mother's Location: Sri Shakthi College [11.0402, 77.0744])
   const hospitals = [
-    { name: "Primary Health Centre (PHC) Pappampatti", coords: [10.9850, 77.0780], dist: "1.8 km", phone: "+914222687200" },
-    { name: "KMCH Speciality Hospital (Sulur Branch)", coords: [11.0260, 77.1260], dist: "6.5 km", phone: "+914224323800" },
-    { name: "NG Hospital & Research Centre, Singanallur", coords: [10.9980, 77.0220], dist: "9.2 km", phone: "+914222576060" },
-    { name: "ESI Medical College Hospital, Singanallur", coords: [11.0020, 77.0300], dist: "8.5 km", phone: "+914222574375" },
-    { name: "Coimbatore Medical College Hospital (GH)", coords: [11.0018, 76.9672], dist: "14.0 km", phone: "+914222301393" }
+    { name: "Primary Health Centre (PHC) Chinniyampalayam", coords: [11.0485, 77.0650], dist: "1.3 km", phone: "+914222627200" },
+    { name: "Royal Care Super Speciality Hospital (Neelambur)", coords: [11.0560, 77.0980], dist: "3.2 km", phone: "+914222227000" },
+    { name: "KMCH Speciality Hospital (Avinashi Road)", coords: [11.0425, 77.0390], dist: "3.8 km", phone: "+914224323800" },
+    { name: "NG Hospital & Research Centre (Singanallur)", coords: [10.9980, 77.0220], dist: "7.1 km", phone: "+914222576060" },
+    { name: "PSG Hospitals (Peelamedu)", coords: [11.0268, 77.0028], dist: "7.8 km", phone: "+914222570170" },
+    { name: "Coimbatore Medical College Hospital (GH)", coords: [11.0018, 76.9672], dist: "12.0 km", phone: "+914222301393" }
   ];
 
   hospitals.forEach(h => {

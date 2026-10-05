@@ -164,14 +164,30 @@
       </div>
       <!-- Dark / Light Mode Slider -->
       <div class="theme-toggle-box" title="Switch Theme (Dark / Light)">
-        <span class="theme-toggle-icon">🌙</span>
+        <span class="theme-toggle-icon theme-icon-moon" title="Dark Mode">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+          </svg>
+        </span>
         <label class="theme-switch" for="themeSliderCheckbox" title="Toggle Dark and Light Mode">
           <input type="checkbox" id="themeSliderCheckbox" class="theme-slider-checkbox" onchange="toggleTheme(this.checked)" aria-label="Toggle Dark and Light Mode" />
           <span class="theme-slider-track">
             <span class="theme-slider-thumb"></span>
           </span>
         </label>
-        <span class="theme-toggle-icon">☀️</span>
+        <span class="theme-toggle-icon theme-icon-sun" title="Bright Mode">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
+          </svg>
+        </span>
       </div>
     </div>
   </header>
@@ -181,38 +197,60 @@
     <div class="nav-container">
       <div class="nav-tabs-group">
         <button class="module-tab active" id="tabDashboard" onclick="switchView('dashboard')">
-          <span class="tab-icon">📊</span> <span data-i18n="navDashboard">Dashboard</span>
+          <span data-i18n="navDashboard">Dashboard</span>
         </button>
         <button class="module-tab" id="tabDoctor" onclick="switchView('doctor')">
-          <span class="tab-icon">🩺</span> <span data-i18n="navDoctor">Doctor</span>
+          <span data-i18n="navDoctor">Doctor</span>
         </button>
         <button class="module-tab" id="tabMother" onclick="switchView('mother')">
-          <span class="tab-icon">👩‍🍼</span> <span data-i18n="navMother">Mother</span>
+          <span data-i18n="navMother">Mother</span>
         </button>
         <button class="module-tab" id="tabRelative" onclick="switchView('relative')">
-          <span class="tab-icon">🛡️</span> <span data-i18n="navRelative">Relative / Caregiver</span>
+          <span data-i18n="navRelative">Relative / Caregiver</span>
         </button>
         <button class="module-tab" id="tabHospitals" onclick="switchView('hospitals')">
-          <span class="tab-icon">🏥</span> <span data-i18n="navHospitals">Nearby Hospitals</span>
+          <span data-i18n="navHospitals">Nearby Hospitals</span>
         </button>
         <button class="module-tab" id="tabChatbot" onclick="switchView('chatbot')">
-          <span class="tab-icon">🤖</span> <span data-i18n="navChatbot">Chatbot</span>
+          <span data-i18n="navChatbot">Chatbot</span>
         </button>
       </div>
 
       <div class="nav-actions-group">
         <div class="theme-toggle-box" title="Switch Theme (Dark / Light)">
-          <span class="theme-toggle-icon">🌙</span>
+          <span class="theme-toggle-icon theme-icon-moon" title="Dark Mode">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+            </svg>
+          </span>
           <label class="theme-switch" for="themeSliderCheckboxNav" title="Toggle Dark and Light Mode">
             <input type="checkbox" id="themeSliderCheckboxNav" class="theme-slider-checkbox" onchange="toggleTheme(this.checked)" aria-label="Toggle Dark and Light Mode" />
             <span class="theme-slider-track">
               <span class="theme-slider-thumb"></span>
             </span>
           </label>
-          <span class="theme-toggle-icon">☀️</span>
+          <span class="theme-toggle-icon theme-icon-sun" title="Bright Mode">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="m4.93 4.93 1.41 1.41"></path>
+              <path d="m17.66 17.66 1.41 1.41"></path>
+              <path d="M2 12h2"></path>
+              <path d="M20 12h2"></path>
+              <path d="m6.34 17.66-1.41 1.41"></path>
+              <path d="m19.07 4.93-1.41 1.41"></path>
+            </svg>
+          </span>
         </div>
         <div class="lang-selector-box">
-          <span class="lang-icon">🌐</span>
+          <span class="lang-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-globe">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+              <path d="M2 12h20"></path>
+            </svg>
+          </span>
           <select id="languageSelect" onchange="changeLanguage(this.value)" class="lang-select"
             aria-label="Select Language">
             <option value="en">English</option>
@@ -477,7 +515,7 @@
     <div id="viewDoctor" class="module-view hidden">
       <div class="doctor-view-header">
         <div class="doctor-title-group">
-          <h2>🩺 Doctor Clinical Dashboard</h2>
+          <h2>Doctor Clinical Dashboard</h2>
           <p>Comprehensive Maternal-Fetal Telemetry & Clinical Diagnostic Surveillance</p>
         </div>
         <div class="doctor-conn-badge" id="doctorConnBadge">
@@ -618,7 +656,7 @@
         <div class="mother-hero-left">
           <div class="mother-avatar">👩‍🍼</div>
           <div class="mother-greeting">
-            <h2><span data-i18n="greetingHello">Hello</span>, <span id="motherGreetingName">Mom</span> 💕</h2>
+            <h2><span data-i18n="greetingHello">Hello</span>, <span id="motherGreetingName">Mom</span></h2>
             <p class="mother-subtitle" data-i18n="motherSubtitle">Personal Maternal Health Care Suite &mdash; Simple &
               Clear</p>
           </div>
@@ -955,7 +993,7 @@
     <div id="viewHospitals" class="module-view hidden">
       <div class="hospitals-hero-banner">
         <div class="hosp-banner-left">
-          <h2>🏥 Nearby Emergency Hospitals & Maternity Centres</h2>
+          <h2>Nearby Emergency Hospitals & Maternity Centres</h2>
           <p class="hosp-subtitle">
             📍 <strong>Demo Prototype Location:</strong> Sri Shakthi College of Engineering and Technology, Chinniyampalayam, Coimbatore, Tamil Nadu, India
           </p>
@@ -984,36 +1022,49 @@
           <div class="hosp-cards-stream" id="hospitalsCardsStream">
             <div class="hosp-card">
               <div class="hosp-card-head">
-                <span class="hosp-name">Primary Health Centre (PHC) Pappampatti</span>
-                <span class="hosp-dist">1.8 km</span>
+                <span class="hosp-name">Primary Health Centre (PHC) Chinniyampalayam</span>
+                <span class="hosp-dist">1.3 km</span>
               </div>
-              <p class="hosp-addr">Pappampatti Main Road, Sulur Block, Coimbatore - 641016</p>
+              <p class="hosp-addr">Chinniyampalayam Main Road, Coimbatore - 641062 (24/7 Antepartum & Maternity Care)</p>
               <div class="hosp-card-actions">
-                <a href="tel:+914222687200" class="hosp-btn call">📞 Call +91 422 268 7200</a>
-                <a href="https://www.google.com/maps/dir/?api=1&destination=Pappampatti+Primary+Health+Centre+Coimbatore"
+                <a href="tel:+914222627200" class="hosp-btn call">📞 Call +91 422 262 7200</a>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=Chinniyampalayam+Primary+Health+Centre+Coimbatore"
                   target="_blank" class="hosp-btn route">🗺️ Route</a>
               </div>
             </div>
 
             <div class="hosp-card">
               <div class="hosp-card-head">
-                <span class="hosp-name">KMCH Speciality Hospital (Sulur Branch)</span>
-                <span class="hosp-dist">6.5 km</span>
+                <span class="hosp-name">Royal Care Super Speciality Hospital (Neelambur Branch)</span>
+                <span class="hosp-dist">3.2 km</span>
               </div>
-              <p class="hosp-addr">Trichy Road, Sulur, Coimbatore - 641402 (24/7 Maternity & Trauma)</p>
+              <p class="hosp-addr">1/520 L&T Bypass Road, Neelambur, Coimbatore - 641062 (24/7 Trauma & Emergency Critical Care)</p>
               <div class="hosp-card-actions">
-                <a href="tel:+914224323800" class="hosp-btn call">📞 Call +91 422 432 3800</a>
-                <a href="https://www.google.com/maps/dir/?api=1&destination=KMCH+Sulur+Coimbatore" target="_blank"
+                <a href="tel:+914222227000" class="hosp-btn call">📞 Call +91 422 222 7000</a>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=Royal+Care+Super+Speciality+Hospital+Neelambur+Coimbatore" target="_blank"
                   class="hosp-btn route">🗺️ Route</a>
               </div>
             </div>
 
             <div class="hosp-card">
               <div class="hosp-card-head">
-                <span class="hosp-name">NG Hospital & Research Centre</span>
-                <span class="hosp-dist">9.2 km</span>
+                <span class="hosp-name">KMCH Speciality Hospital (Avinashi Road Main Center)</span>
+                <span class="hosp-dist">3.8 km</span>
               </div>
-              <p class="hosp-addr">577 Trichy Road, Singanallur, Coimbatore - 641005 (Advanced OB/GYN)</p>
+              <p class="hosp-addr">99 Avinashi Road, Civil Aerodrome Post, Coimbatore - 641014 (Level III NICU & High-Risk Obstetrics)</p>
+              <div class="hosp-card-actions">
+                <a href="tel:+914224323800" class="hosp-btn call">📞 Call +91 422 432 3800</a>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=KMCH+Avinashi+Road+Coimbatore"
+                  target="_blank" class="hosp-btn route">🗺️ Route</a>
+              </div>
+            </div>
+
+            <div class="hosp-card">
+              <div class="hosp-card-head">
+                <span class="hosp-name">NG Hospital & Research Centre (Singanallur)</span>
+                <span class="hosp-dist">7.1 km</span>
+              </div>
+              <p class="hosp-addr">577 Trichy Road, Singanallur, Coimbatore - 641005 (Advanced OB/GYN Speciality Ward)</p>
               <div class="hosp-card-actions">
                 <a href="tel:+914222576060" class="hosp-btn call">📞 Call +91 422 257 6060</a>
                 <a href="https://www.google.com/maps/dir/?api=1&destination=NG+Hospital+Singanallur+Coimbatore"
@@ -1023,23 +1074,23 @@
 
             <div class="hosp-card">
               <div class="hosp-card-head">
-                <span class="hosp-name">ESI Medical College & Hospital</span>
-                <span class="hosp-dist">8.5 km</span>
+                <span class="hosp-name">PSG Hospitals & Medical College (Peelamedu)</span>
+                <span class="hosp-dist">7.8 km</span>
               </div>
-              <p class="hosp-addr">Varadharajapuram, Singanallur, Coimbatore - 641015 (Emergency Care)</p>
+              <p class="hosp-addr">Avinashi Road, Peelamedu, Coimbatore - 641004 (24/7 Maternal-Fetal Medicine & Neonatal ICU)</p>
               <div class="hosp-card-actions">
-                <a href="tel:+914222574375" class="hosp-btn call">📞 Call +91 422 257 4375</a>
-                <a href="https://www.google.com/maps/dir/?api=1&destination=ESI+Hospital+Singanallur+Coimbatore"
+                <a href="tel:+914222570170" class="hosp-btn call">📞 Call +91 422 257 0170</a>
+                <a href="https://www.google.com/maps/dir/?api=1&destination=PSG+Hospitals+Peelamedu+Coimbatore"
                   target="_blank" class="hosp-btn route">🗺️ Route</a>
               </div>
             </div>
 
             <div class="hosp-card">
               <div class="hosp-card-head">
-                <span class="hosp-name">Coimbatore Medical College Hospital (CMCH)</span>
-                <span class="hosp-dist">14.0 km</span>
+                <span class="hosp-name">Coimbatore Medical College Hospital (CMCH / GH)</span>
+                <span class="hosp-dist">12.0 km</span>
               </div>
-              <p class="hosp-addr">Avinashi Road, Gopalapuram, Coimbatore - 641018 (State Govt Teritiary Hospital)</p>
+              <p class="hosp-addr">Trichy Road, Gopalapuram, Coimbatore - 641018 (State Govt Apex 24/7 Emergency & Maternity Center)</p>
               <div class="hosp-card-actions">
                 <a href="tel:+914222301393" class="hosp-btn call">📞 Call +91 422 230 1393</a>
                 <a href="https://www.google.com/maps/dir/?api=1&destination=Coimbatore+Medical+College+Hospital"
