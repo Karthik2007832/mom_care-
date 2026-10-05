@@ -1867,18 +1867,40 @@ function deriveAnemia(bpm) {
 
 // ── View Switching Logic ──────────────────────────────────────────────────
 window.switchView = function(viewId) {
+  // If doctor portal requested and not authenticated, show login page
+  if (viewId === 'doctor' && typeof isDoctorAuthenticated === 'function' && !isDoctorAuthenticated()) {
+    viewId = 'doctor-login';
+  }
+
+  // Dashboard section is now part of doctor portal
+  if (viewId === 'dashboard') {
+    viewId = (typeof isDoctorAuthenticated === 'function' && isDoctorAuthenticated()) ? 'doctor' : 'mother';
+  }
+
   currentView = viewId;
 
   // Update tabs
   document.querySelectorAll('.module-tab').forEach(tab => {
-    tab.classList.toggle('active', tab.getAttribute('data-view') === viewId || tab.id === `tab${capitalize(viewId)}`);
+    const isDocAdviceTab = (viewId === 'doctor-advice' && tab.id === 'tabDoctorAdvice');
+    const isMotherTab = (viewId === 'mother' && tab.id === 'tabMother');
+    const isRelTab = (viewId === 'relative' && tab.id === 'tabRelative');
+    const isHospTab = (viewId === 'hospitals' && tab.id === 'tabHospitals');
+    const isChatTab = (viewId === 'chatbot' && tab.id === 'tabChatbot');
+    const matches = isDocAdviceTab || isMotherTab || isRelTab || isHospTab || isChatTab ||
+      tab.getAttribute('data-view') === viewId || tab.id === `tab${capitalize(viewId)}`;
+    tab.classList.toggle('active', matches);
   });
+
+  if (typeof updateDoctorNavState === 'function') {
+    updateDoctorNavState();
+  }
 
   // Toggle views
   const viewMap = {
-    'dashboard': 'viewDashboard',
-    'doctor': 'viewDoctor',
     'mother': 'viewMother',
+    'doctor-advice': 'viewDoctorAdvice',
+    'doctor': 'viewDoctor',
+    'doctor-login': 'viewDoctorLogin',
     'relative': 'viewRelative',
     'hospitals': 'viewHospitals',
     'chatbot': 'viewChatbot'
@@ -1902,10 +1924,15 @@ window.switchView = function(viewId) {
   } else if (viewId === 'chatbot') {
     const win = document.getElementById('cbWorkspaceHistory');
     if (win) win.scrollTop = win.scrollHeight;
+  } else if (viewId === 'doctor-advice' && typeof renderPatientPrescriptions === 'function') {
+    renderPatientPrescriptions();
+  } else if (viewId === 'doctor' && typeof renderDoctorPrescriptions === 'function') {
+    renderDoctorPrescriptions();
   }
 };
 
 function capitalize(s) {
+  if (!s) return '';
   return s.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
 }
 
@@ -3274,9 +3301,705 @@ setInterval(() => {
   }
 }, 2500);
 
+// ══════════════════════════════════════════════════════════════════════════
+//   DOCTOR CLINICAL AUTHENTICATION & PRESCRIPTION MANAGEMENT ENGINE
+// ══════════════════════════════════════════════════════════════════════════
+
+const TELEGRAM_BOT_TOKEN = '8694243360:AAFXCsgiBvjJcgqKdl2delbTLU4u7RaocDo';
+const TELEGRAM_CHAT_ID = '7953529788';
+
+// Direct Telegram alert dispatcher with backend fallback
+async function sendDirectTelegramNotification(text) {
+  try {
+    const resp = await fetch('/api/send-telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    if (resp.ok) return true;
+  } catch (e) {
+    console.info('Backend telegram proxy unavailable, trying direct Telegram Bot API...');
+  }
+
+  try {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: text,
+        parse_mode: 'Markdown'
+      })
+    });
+    const res = await resp.json();
+    return res && res.ok;
+  } catch (err) {
+    console.error('Direct Telegram send error:', err);
+    return false;
+  }
+}
+
+// ── Doctor Auth State & Functions ─────────────────────────────────────────
+window.isDoctorAuthenticated = function() {
+  try {
+    const auth = localStorage.getItem('momcare_doc_auth');
+    if (!auth) return false;
+    const parsed = JSON.parse(auth);
+    return Boolean(parsed && parsed.isLoggedIn);
+  } catch (e) {
+    return false;
+  }
+};
+
+window.getDoctorProfile = function() {
+  try {
+    const auth = localStorage.getItem('momcare_doc_auth');
+    return auth ? JSON.parse(auth) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+window.updateDoctorNavState = function() {
+  const btn = document.getElementById('btnNavDoctorLogin');
+  const txt = document.getElementById('txtNavDoctorLogin');
+  if (!btn) return;
+  if (isDoctorAuthenticated()) {
+    btn.classList.add('active-logged-in');
+    if (txt) txt.textContent = 'Doctor Portal (Dr. Sharma)';
+  } else {
+    btn.classList.remove('active-logged-in');
+    if (txt) txt.textContent = 'Doctor Portal';
+  }
+};
+
+window.handleDoctorPortalNav = function() {
+  if (isDoctorAuthenticated()) {
+    switchView('doctor');
+  } else {
+    switchView('doctor-login');
+  }
+};
+
+window.submitDoctorLogin = function(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const docId = (document.getElementById('docLoginId')?.value || '').trim();
+  const pass = (document.getElementById('docLoginPass')?.value || '').trim();
+  const dept = document.getElementById('docLoginDept')?.value || 'Obstetrics & Gynaecology';
+  const alertEl = document.getElementById('docLoginAlert');
+
+  const validIds = ['dr-sharma-902', 'doctor', 'admin', 'sharma'];
+  const isValidId = validIds.includes(docId.toLowerCase()) || docId.length >= 3;
+  const isValidPass = pass === 'doc123' || pass === 'admin' || pass.length >= 4;
+
+  if (!isValidId || !isValidPass) {
+    if (alertEl) {
+      alertEl.style.display = 'flex';
+      alertEl.className = 'doc-login-alert error';
+      alertEl.textContent = '⚠️ Invalid Doctor ID or Passcode. (Demo ID: DR-SHARMA-902, Pass: doc123)';
+    }
+    return false;
+  }
+
+  if (alertEl) alertEl.style.display = 'none';
+
+  const docSession = {
+    isLoggedIn: true,
+    doctorId: docId,
+    doctorName: 'Dr. A. Sharma, MD, DGO',
+    department: dept,
+    loginTime: Date.now()
+  };
+  localStorage.setItem('momcare_doc_auth', JSON.stringify(docSession));
+  updateDoctorNavState();
+  switchView('doctor');
+  return false;
+};
+
+window.quickDoctorDemoLogin = function() {
+  const docIdInput = document.getElementById('docLoginId');
+  const passInput = document.getElementById('docLoginPass');
+  if (docIdInput) docIdInput.value = 'DR-SHARMA-902';
+  if (passInput) passInput.value = 'doc123';
+  submitDoctorLogin();
+};
+
+window.logoutDoctor = function() {
+  localStorage.removeItem('momcare_doc_auth');
+  updateDoctorNavState();
+  switchView('mother');
+  const alertEl = document.getElementById('docLoginAlert');
+  if (alertEl) {
+    alertEl.style.display = 'flex';
+    alertEl.className = 'doc-login-alert success';
+    alertEl.textContent = '✅ Doctor session logged out successfully.';
+  }
+};
+
+// ── Clinical Prescriptions Engine ─────────────────────────────────────────
+let clinicalPrescriptions = [
+  {
+    id: 'rx_1',
+    name: 'Ferrous Ascorbate + Folic Acid',
+    dosage: '100mg / 1.5mg (1 Tablet)',
+    times: ['Morning', 'Night'],
+    scheduledTimes: ['08:00', '21:00'],
+    durationDays: 30,
+    durationText: '1 Month (30 Days)',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    prescribedBy: 'Dr. A. Sharma, MD, DGO (#TN-MC-84920)',
+    notes: 'Take after breakfast and dinner with citrus juice to maximize iron absorption and prevent gestational anemia. Avoid dairy or tea within 1 hour.',
+    status: 'active',
+    createdAt: Date.now()
+  },
+  {
+    id: 'rx_2',
+    name: 'Calcium Carbonate + Vitamin D3',
+    dosage: '500mg + 250 IU (1 Tablet)',
+    times: ['Afternoon'],
+    scheduledTimes: ['13:00'],
+    durationDays: 30,
+    durationText: '1 Month (30 Days)',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    prescribedBy: 'Dr. A. Sharma, MD, DGO (#TN-MC-84920)',
+    notes: 'Take 2 hours after lunch. Essential for fetal skeletal development and maintaining maternal bone density.',
+    status: 'active',
+    createdAt: Date.now()
+  },
+  {
+    id: 'rx_3',
+    name: 'Progesterone Sustained Release',
+    dosage: '200mg (1 Capsule)',
+    times: ['Night'],
+    scheduledTimes: ['21:00'],
+    durationDays: 30,
+    durationText: '1 Month (30 Days)',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    prescribedBy: 'Dr. A. Sharma, MD, DGO (#TN-MC-84920)',
+    notes: 'Take at bedtime with water. Supports luteal and placental stability to prevent uterine irritability.',
+    status: 'active',
+    createdAt: Date.now()
+  }
+];
+
+window.initPrescriptionSystem = async function() {
+  try {
+    const cached = localStorage.getItem('momcare_prescriptions');
+    if (cached) {
+      clinicalPrescriptions = JSON.parse(cached);
+    }
+    const resp = await fetch('/api/prescriptions');
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && Array.isArray(data.prescriptions) && data.prescriptions.length > 0) {
+        clinicalPrescriptions = data.prescriptions;
+        localStorage.setItem('momcare_prescriptions', JSON.stringify(clinicalPrescriptions));
+      }
+    }
+  } catch (e) {
+    console.info('Prescriptions initialized from local fallback store.');
+  }
+  renderDoctorPrescriptions();
+  renderPatientPrescriptions();
+};
+
+window.renderDoctorPrescriptions = function() {
+  const listEl = document.getElementById('doctorPrescriptionsList');
+  if (!listEl) return;
+
+  if (!clinicalPrescriptions || clinicalPrescriptions.length === 0) {
+    listEl.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">No active prescriptions. Use the composer above to prescribe medications.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = clinicalPrescriptions.map(rx => {
+    const isDiscontinued = rx.status === 'discontinued';
+    const statusBadge = isDiscontinued
+      ? `<span class="doc-badge-status discontinued">Discontinued</span>`
+      : `<span class="doc-badge-status active">Active &bull; Daily Reminders</span>`;
+
+    const timingTags = (rx.times || []).map(t => {
+      let icon = '⏰';
+      if (t === 'Morning') icon = '🌅';
+      if (t === 'Afternoon') icon = '☀️';
+      if (t === 'Evening') icon = '🌇';
+      if (t === 'Night') icon = '🌙';
+      return `<span class="schedule-time-tag">${icon} ${t}</span>`;
+    }).join(' ');
+
+    const daysElapsed = Math.max(1, Math.floor((Date.now() - (rx.createdAt || Date.now())) / (24 * 60 * 60 * 1000)) + 1);
+    const durationBadge = `<span class="doc-badge-duration">🗓️ ${rx.durationText || (rx.durationDays + ' Days')} (Day ${daysElapsed} of ${rx.durationDays || 30})</span>`;
+
+    return `
+      <div class="doc-rx-card ${isDiscontinued ? 'discontinued-card' : ''}" id="rxDocCard_${rx.id}">
+        <div class="doc-rx-card-top">
+          <div class="doc-rx-drug-info">
+            <div class="doc-rx-pill-icon">💊</div>
+            <div>
+              <div class="doc-rx-drug-name">${rx.name}</div>
+              <div class="doc-rx-dosage">Dosage: <strong>${rx.dosage}</strong> &bull; Prescribed by ${rx.prescribedBy || 'Dr. A. Sharma'}</div>
+            </div>
+          </div>
+          <div class="doc-rx-badges">
+            ${statusBadge}
+            ${durationBadge}
+          </div>
+        </div>
+
+        <div class="doc-rx-schedule-strip">
+          <span style="font-weight: 600; color: var(--text-primary);">Intake Times:</span>
+          ${timingTags}
+        </div>
+
+        ${rx.notes ? `
+          <div class="doc-rx-notes-quote">
+            <strong>Doctor's Clinical Notes / Instructions:</strong> ${rx.notes}
+          </div>
+        ` : ''}
+
+        <div class="doc-rx-actions-strip">
+          <button class="doc-rx-btn-small telegram" onclick="triggerSingleTelegramMedAlert('${rx.id}')" title="Send Telegram Notification for this medicine">
+            ✈️ Send Telegram Reminder Now
+          </button>
+          <button class="doc-rx-btn-small" onclick="editPrescription('${rx.id}')" title="Edit dosage, schedule or duration mid-course">
+            ✏️ Edit Mid-Course Authority
+          </button>
+          <button class="doc-rx-btn-small ${isDiscontinued ? '' : 'danger'}" onclick="toggleDiscontinueRx('${rx.id}')">
+            ${isDiscontinued ? '▶️ Resume Medication' : '⏸️ Discontinue Mid-Course'}
+          </button>
+          <button class="doc-rx-btn-small danger" onclick="deletePrescription('${rx.id}')" title="Remove Prescription">
+            🗑️ Remove
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+window.renderPatientPrescriptions = function() {
+  const listEl = document.getElementById('patientPrescriptionsList');
+  const morningSlot = document.getElementById('slotMorningList');
+  const afternoonSlot = document.getElementById('slotAfternoonList');
+  const eveningSlot = document.getElementById('slotEveningList');
+  const nightSlot = document.getElementById('slotNightList');
+
+  const slots = { Morning: [], Afternoon: [], Evening: [], Night: [] };
+
+  clinicalPrescriptions.forEach(rx => {
+    if (rx.status === 'discontinued') return;
+    (rx.times || []).forEach(time => {
+      if (slots[time]) {
+        slots[time].push(`${rx.name} (${rx.dosage})`);
+      }
+    });
+  });
+
+  const renderSlotItems = (arr) => {
+    if (!arr || arr.length === 0) return '<span style="color: var(--text-muted); font-size: 0.8rem;">No medicines scheduled</span>';
+    return arr.map(item => `<div>&bull; <strong>${item}</strong></div>`).join('');
+  };
+
+  if (morningSlot) morningSlot.innerHTML = renderSlotItems(slots.Morning);
+  if (afternoonSlot) afternoonSlot.innerHTML = renderSlotItems(slots.Afternoon);
+  if (eveningSlot) eveningSlot.innerHTML = renderSlotItems(slots.Evening);
+  if (nightSlot) nightSlot.innerHTML = renderSlotItems(slots.Night);
+
+  if (!listEl) return;
+
+  if (!clinicalPrescriptions || clinicalPrescriptions.length === 0) {
+    listEl.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">No active prescriptions from your doctor.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = clinicalPrescriptions.map(rx => {
+    const isDiscontinued = rx.status === 'discontinued';
+    const timingTags = (rx.times || []).map(t => {
+      let icon = '⏰';
+      if (t === 'Morning') icon = '🌅';
+      if (t === 'Afternoon') icon = '☀️';
+      if (t === 'Evening') icon = '🌇';
+      if (t === 'Night') icon = '🌙';
+      return `<span class="schedule-time-tag">${icon} ${t}</span>`;
+    }).join(' ');
+
+    const daysElapsed = Math.max(1, Math.floor((Date.now() - (rx.createdAt || Date.now())) / (24 * 60 * 60 * 1000)) + 1);
+
+    return `
+      <div class="doc-rx-card ${isDiscontinued ? 'discontinued-card' : ''}">
+        <div class="doc-rx-card-top">
+          <div class="doc-rx-drug-info">
+            <div class="doc-rx-pill-icon">💊</div>
+            <div>
+              <div class="doc-rx-drug-name">${rx.name}</div>
+              <div class="doc-rx-dosage">Strength: <strong>${rx.dosage}</strong> &bull; Prescribed by ${rx.prescribedBy || 'Dr. A. Sharma'}</div>
+            </div>
+          </div>
+          <div class="doc-rx-badges">
+            <span class="doc-badge-status ${isDiscontinued ? 'discontinued' : 'active'}">${isDiscontinued ? 'Discontinued by Doctor' : 'Active Prescription'}</span>
+            <span class="doc-badge-duration">🗓️ ${rx.durationText || (rx.durationDays + ' Days')} (Day ${daysElapsed} of ${rx.durationDays || 30})</span>
+          </div>
+        </div>
+
+        <div class="doc-rx-schedule-strip">
+          <span style="font-weight: 600; color: var(--text-primary);">When to take:</span>
+          ${timingTags}
+        </div>
+
+        ${rx.notes ? `
+          <div class="doc-rx-notes-quote">
+            <strong>Doctor's Advice & Explanation:</strong> ${rx.notes}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+};
+
+window.savePrescriptionFromDoctor = async function() {
+  const idInput = document.getElementById('editRxId');
+  const nameInput = document.getElementById('inputMedName');
+  const dosageInput = document.getElementById('inputMedDosage');
+  const durationSelect = document.getElementById('selectMedDuration');
+  const notesInput = document.getElementById('inputMedNotes');
+
+  const name = (nameInput?.value || '').trim();
+  const dosage = (dosageInput?.value || '').trim();
+  const durationDays = parseInt(durationSelect?.value || '30', 10);
+  const notes = (notesInput?.value || '').trim();
+
+  const times = [];
+  if (document.getElementById('chkTimeMorning')?.checked) times.push('Morning');
+  if (document.getElementById('chkTimeAfternoon')?.checked) times.push('Afternoon');
+  if (document.getElementById('chkTimeEvening')?.checked) times.push('Evening');
+  if (document.getElementById('chkTimeNight')?.checked) times.push('Night');
+
+  if (!name) {
+    alert('Please enter the medicine name and formulation.');
+    nameInput?.focus();
+    return;
+  }
+
+  if (!dosage) {
+    alert('Please enter the dosage / strength.');
+    dosageInput?.focus();
+    return;
+  }
+
+  if (times.length === 0) {
+    alert('Please select at least one intake schedule time (Morning, Afternoon, Evening, or Night).');
+    return;
+  }
+
+  let durationText = `${durationDays} Days`;
+  if (durationDays === 30) durationText = '1 Month (30 Days)';
+  if (durationDays === 15) durationText = '15 Days (2 Weeks)';
+  if (durationDays === 60) durationText = '2 Months (60 Days)';
+  if (durationDays === 90) durationText = '3 Months (Trimester)';
+  if (durationDays === 7) durationText = '7 Days (1 Week)';
+
+  const editingId = idInput?.value;
+  let targetRx;
+
+  if (editingId) {
+    const idx = clinicalPrescriptions.findIndex(p => p.id === editingId);
+    if (idx >= 0) {
+      clinicalPrescriptions[idx] = {
+        ...clinicalPrescriptions[idx],
+        name,
+        dosage,
+        durationDays,
+        durationText,
+        times,
+        notes,
+        status: 'active',
+        updatedAt: Date.now()
+      };
+      targetRx = clinicalPrescriptions[idx];
+    }
+  } else {
+    targetRx = {
+      id: 'rx_' + Date.now(),
+      name,
+      dosage,
+      durationDays,
+      durationText,
+      times,
+      notes,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      prescribedBy: 'Dr. A. Sharma, MD, DGO (#TN-MC-84920)',
+      status: 'active',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    clinicalPrescriptions.unshift(targetRx);
+  }
+
+  // Save locally
+  localStorage.setItem('momcare_prescriptions', JSON.stringify(clinicalPrescriptions));
+
+  // Sync to server
+  try {
+    await fetch('/api/prescriptions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prescriptions: clinicalPrescriptions })
+    });
+  } catch (e) {
+    console.warn('Server sync error for prescriptions:', e);
+  }
+
+  // Dispatch Telegram alert confirmation
+  const telegramMsg = `📋 *MOMCARE CLINICAL PRESCRIPTION UPDATE* 💊\n\n` +
+    `👩‍⚕️ *Attending Doctor:* Dr. A. Sharma, MD, DGO\n` +
+    `💊 *Medication:* ${targetRx.name}\n` +
+    `💉 *Dosage:* ${targetRx.dosage}\n` +
+    `🗓️ *Duration:* ${targetRx.durationText}\n` +
+    `⏰ *Scheduled Intake:* ${targetRx.times.join(', ')}\n` +
+    `${targetRx.notes ? `📝 *Doctor's Instructions:* ${targetRx.notes}\n` : ''}\n` +
+    `🔔 *Daily Telegram Reminders:* Active for the next ${targetRx.durationDays} days!\n` +
+    `— MomCare 360 Maternal Care`;
+
+  sendDirectTelegramNotification(telegramMsg);
+
+  resetPrescriptionForm();
+  renderDoctorPrescriptions();
+  renderPatientPrescriptions();
+  alert(`✅ Prescription saved successfully and pushed to the patient section! A confirmation reminder has been dispatched to Telegram.`);
+};
+
+window.editPrescription = function(id) {
+  const rx = clinicalPrescriptions.find(p => p.id === id);
+  if (!rx) return;
+
+  const editIdEl = document.getElementById('editRxId');
+  const nameEl = document.getElementById('inputMedName');
+  const dosageEl = document.getElementById('inputMedDosage');
+  const durationEl = document.getElementById('selectMedDuration');
+  const notesEl = document.getElementById('inputMedNotes');
+
+  if (editIdEl) editIdEl.value = rx.id;
+  if (nameEl) nameEl.value = rx.name;
+  if (dosageEl) dosageEl.value = rx.dosage;
+  if (durationEl) durationEl.value = rx.durationDays || '30';
+  if (notesEl) notesEl.value = rx.notes || '';
+
+  const chkM = document.getElementById('chkTimeMorning');
+  const chkA = document.getElementById('chkTimeAfternoon');
+  const chkE = document.getElementById('chkTimeEvening');
+  const chkN = document.getElementById('chkTimeNight');
+
+  if (chkM) chkM.checked = (rx.times || []).includes('Morning');
+  if (chkA) chkA.checked = (rx.times || []).includes('Afternoon');
+  if (chkE) chkE.checked = (rx.times || []).includes('Evening');
+  if (chkN) chkN.checked = (rx.times || []).includes('Night');
+
+  const heading = document.getElementById('composerHeading');
+  if (heading) heading.textContent = `✏️ Edit Prescription Mid-Course: ${rx.name}`;
+
+  const composer = document.getElementById('docRxComposer');
+  if (composer) {
+    composer.style.display = 'block';
+    composer.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+
+window.toggleDiscontinueRx = function(id) {
+  const rx = clinicalPrescriptions.find(p => p.id === id);
+  if (!rx) return;
+  rx.status = (rx.status === 'discontinued') ? 'active' : 'discontinued';
+  rx.updatedAt = Date.now();
+  localStorage.setItem('momcare_prescriptions', JSON.stringify(clinicalPrescriptions));
+
+  try {
+    fetch('/api/prescriptions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prescriptions: clinicalPrescriptions })
+    });
+  } catch (e) {}
+
+  renderDoctorPrescriptions();
+  renderPatientPrescriptions();
+};
+
+window.deletePrescription = function(id) {
+  if (!confirm('Are you sure you want to remove this prescription?')) return;
+  clinicalPrescriptions = clinicalPrescriptions.filter(p => p.id !== id);
+  localStorage.setItem('momcare_prescriptions', JSON.stringify(clinicalPrescriptions));
+
+  try {
+    fetch('/api/prescriptions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prescriptions: clinicalPrescriptions })
+    });
+  } catch (e) {}
+
+  renderDoctorPrescriptions();
+  renderPatientPrescriptions();
+};
+
+window.resetPrescriptionForm = function() {
+  const editIdEl = document.getElementById('editRxId');
+  const nameEl = document.getElementById('inputMedName');
+  const dosageEl = document.getElementById('inputMedDosage');
+  const durationEl = document.getElementById('selectMedDuration');
+  const notesEl = document.getElementById('inputMedNotes');
+
+  if (editIdEl) editIdEl.value = '';
+  if (nameEl) nameEl.value = '';
+  if (dosageEl) dosageEl.value = '1 Tablet';
+  if (durationEl) durationEl.value = '30';
+  if (notesEl) notesEl.value = '';
+
+  const chkM = document.getElementById('chkTimeMorning');
+  const chkA = document.getElementById('chkTimeAfternoon');
+  const chkE = document.getElementById('chkTimeEvening');
+  const chkN = document.getElementById('chkTimeNight');
+
+  if (chkM) chkM.checked = true;
+  if (chkA) chkA.checked = false;
+  if (chkE) chkE.checked = false;
+  if (chkN) chkN.checked = true;
+
+  const heading = document.getElementById('composerHeading');
+  if (heading) heading.textContent = 'Prescribe Medication Schedule';
+};
+
+window.togglePrescriptionForm = function() {
+  const composer = document.getElementById('docRxComposer');
+  if (!composer) return;
+  if (composer.style.display === 'none') {
+    composer.style.display = 'block';
+    composer.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    composer.style.display = 'none';
+  }
+};
+
+window.selectQuickMed = function(name, dosage, notes, duration, times) {
+  const nameEl = document.getElementById('inputMedName');
+  const dosageEl = document.getElementById('inputMedDosage');
+  const notesEl = document.getElementById('inputMedNotes');
+  const durationEl = document.getElementById('selectMedDuration');
+
+  if (nameEl) nameEl.value = name;
+  if (dosageEl) dosageEl.value = dosage;
+  if (notesEl) notesEl.value = notes;
+  if (durationEl) durationEl.value = duration.toString();
+
+  const chkM = document.getElementById('chkTimeMorning');
+  const chkA = document.getElementById('chkTimeAfternoon');
+  const chkE = document.getElementById('chkTimeEvening');
+  const chkN = document.getElementById('chkTimeNight');
+
+  if (chkM) chkM.checked = times.includes('Morning');
+  if (chkA) chkA.checked = times.includes('Afternoon');
+  if (chkE) chkE.checked = times.includes('Evening');
+  if (chkN) chkN.checked = times.includes('Night');
+};
+
+window.triggerSingleTelegramMedAlert = function(id) {
+  const rx = clinicalPrescriptions.find(p => p.id === id);
+  if (!rx) return;
+
+  const daysElapsed = Math.max(1, Math.floor((Date.now() - (rx.createdAt || Date.now())) / (24 * 60 * 60 * 1000)) + 1);
+  const msg = `🔔 *MOMCARE MEDICATION REMINDER* 💊\n\n` +
+    `Dear Mom, it is time for your scheduled medicine!\n\n` +
+    `💊 *Medication:* ${rx.name}\n` +
+    `💉 *Strength:* ${rx.dosage}\n` +
+    `⏰ *Scheduled Intake:* ${rx.times.join(', ')}\n` +
+    `🗓️ *Course:* ${rx.durationText || (rx.durationDays + ' Days')} (Day ${daysElapsed} of ${rx.durationDays || 30})\n` +
+    `👩‍⚕️ *Doctor's Instructions:* ${rx.notes || 'Take as advised with water after meals.'}\n\n` +
+    `🩺 Please take your tablet now for optimal maternal and fetal wellness.\n` +
+    `— MomCare 360 Maternal Care`;
+
+  sendDirectTelegramNotification(msg);
+  alert(`📲 Telegram reminder dispatched for ${rx.name} to @Momcareemergencyalarm_bot!`);
+};
+
+window.testSendTelegramReminder = function() {
+  const activeMeds = clinicalPrescriptions.filter(p => p.status === 'active');
+  const medListStr = activeMeds.map(m => `• *${m.name}* (${m.dosage}) - ${m.times.join('/')}`).join('\n');
+
+  const msg = `🔔 *MOMCARE DAILY MEDICATION REMINDER* 💊\n\n` +
+    `Dear Mom, this is your scheduled medication reminder!\n\n` +
+    `📋 *Prescribed Medications Active Today:*\n${medListStr || '• Ferrous Ascorbate + Folic Acid (100mg)'}\n\n` +
+    `👩‍⚕️ *Attending Obstetrician:* Dr. A. Sharma, MD, DGO\n` +
+    `🏥 *Facility:* Sri Shakthi Health Wing, Coimbatore\n` +
+    `💡 *Tip:* Stay hydrated and remember to take your iron tablet with citrus juice for enhanced absorption!\n\n` +
+    `— MomCare 360 Autonomous Care`;
+
+  sendDirectTelegramNotification(msg);
+  alert('✈️ Medication reminder alert dispatched to Telegram (@Momcareemergencyalarm_bot)!');
+};
+
+// Daily Automatic Telegram Reminder Engine
+let lastReminderSentSlot = '';
+setInterval(() => {
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  const todayStr = now.toDateString();
+
+  let matchedSlot = null;
+  if (hour === 8 && minute <= 5) matchedSlot = 'Morning';
+  else if (hour === 13 && minute <= 5) matchedSlot = 'Afternoon';
+  else if (hour === 18 && minute <= 5) matchedSlot = 'Evening';
+  else if (hour === 21 && minute <= 5) matchedSlot = 'Night';
+
+  if (matchedSlot) {
+    const key = `${todayStr}_${matchedSlot}`;
+    if (lastReminderSentSlot !== key) {
+      lastReminderSentSlot = key;
+
+      const activeMedsForSlot = clinicalPrescriptions.filter(p => p.status === 'active' && (p.times || []).includes(matchedSlot));
+      if (activeMedsForSlot.length > 0) {
+        const medList = activeMedsForSlot.map(m => `• *${m.name}* (${m.dosage})\n  _${m.notes || 'Take after food'}_`).join('\n\n');
+        const autoMsg = `🔔 *MOMCARE ${matchedSlot.toUpperCase()} MEDICATION REMINDER* 💊\n\n` +
+          `Dear Mom, it is time for your *${matchedSlot}* dose!\n\n` +
+          `📋 *Medications to take now:*\n${medList}\n\n` +
+          `👩‍⚕️ *Doctor:* Dr. A. Sharma, MD, DGO\n` +
+          `— MomCare 360 Autonomous Healthcare`;
+        sendDirectTelegramNotification(autoMsg);
+        console.log(`[MomCare Scheduler] Automatic Telegram reminder dispatched for ${matchedSlot} slot.`);
+      }
+    }
+  }
+}, 30000);
+
+window.toggleSlotTaken = function(slot) {
+  const card = document.getElementById('slotCard' + capitalize(slot));
+  if (!card) return;
+  card.classList.toggle('taken');
+  const btn = card.querySelector('.slot-check-btn');
+  if (btn) {
+    if (card.classList.contains('taken')) {
+      btn.classList.add('checked');
+      btn.innerHTML = '✔ Dose Completed';
+    } else {
+      btn.classList.remove('checked');
+      btn.innerHTML = '✔ Mark Dose Taken';
+    }
+  }
+};
+
 // ── Startup Initialization ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   changeLanguage(currentLanguage);
+  initPrescriptionSystem();
+  updateDoctorNavState();
+
+  // If not authenticated as doctor, default to Mother View
+  if (!isDoctorAuthenticated()) {
+    switchView('mother');
+  }
+
   // Start with strictly clean waiting state — NO fake normal values
   syncSharedModules({
     bpm: 0,
